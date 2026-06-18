@@ -1,0 +1,3 @@
+node_modules/
+*.log
+# screenshots de teste (shot-*.png) ficam versionados: o README referencia um deles

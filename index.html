@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CubeCraft: Hellblocks — Diablo-like no universo Minecraft</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+  <div id="game-root">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Telas -->
+    <div id="loading-screen" class="overlay-screen">
+      <div class="loading-box">
+        <h1 class="game-title">CUBECRAFT</h1>
+        <h2 class="game-subtitle">HELLBLOCKS</h2>
+        <p class="loading-text">Carregando o submundo cúbico...</p>
+      </div>
+    </div>
+
+    <div id="title-screen" class="overlay-screen hidden">
+      <div class="menu-box">
+        <h1 class="game-title">CUBECRAFT</h1>
+        <h2 class="game-subtitle">HELLBLOCKS</h2>
+        <p class="menu-hint">Um ARPG estilo Diablo II no universo Minecraft</p>
+        <div id="class-select"></div>
+        <div id="difficulty-select" class="difficulty-row"></div>
+        <button id="start-button" class="big-button">ENTRAR EM SANCTUBLOCK</button>
+      </div>
+    </div>
+
+    <!-- HUD do jogo -->
+    <div id="hud" class="hidden">
+      <div id="globe-life" class="globe"><div class="globe-fill life"></div><span class="globe-label"></span></div>
+      <div id="globe-mana" class="globe"><div class="globe-fill mana"></div><span class="globe-label"></span></div>
+
+      <div id="skill-belt"></div>
+
+      <div id="xp-bar"><div id="xp-fill"></div><span id="xp-label"></span></div>
+
+      <div id="top-info">
+        <div id="zone-name">—</div>
+        <div id="difficulty-badge">NORMAL</div>
+      </div>
+
+      <div id="minimap-wrap"><canvas id="minimap"></canvas></div>
+
+      <div id="combat-log"></div>
+      <div id="floating-text-layer"></div>
+    </div>
+
+    <!-- Painéis -->
+    <div id="char-panel" class="panel hidden"></div>
+    <div id="inventory-panel" class="panel hidden"></div>
+    <div id="skilltree-panel" class="panel hidden"></div>
+
+    <div id="tooltip" class="hidden"></div>
+
+    <div id="death-screen" class="overlay-screen hidden">
+      <div class="menu-box">
+        <h2 class="death-title">VOCÊ MORREU</h2>
+        <p>Seus blocos se desfizeram em Sanctublock.</p>
+        <button id="respawn-button" class="big-button">REVIVER NA CIDADE</button>
+      </div>
+    </div>
+
+    <div id="help-bar">
+      <span>Esq: mover/atacar/interagir</span>
+      <span>Dir: skill</span>
+      <span>Shift: ficar parado (atacar no lugar)</span>
+      <span>1-4: skills</span>
+      <span>Q/W/E/R: poções</span>
+      <span>F: portal</span>
+      <span>Z: waypoints</span>
+      <span>H: cubo</span>
+      <span>B: baú</span>
+      <span>J: quests</span>
+      <span>X: players</span>
+      <span>Shift+barra: skill esq.</span>
+      <span>C: personagem</span>
+      <span>I: inventário</span>
+      <span>T: árvore</span>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

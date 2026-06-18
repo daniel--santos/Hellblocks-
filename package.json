@@ -1,0 +1,14 @@
+{
+  "name": "cubecraft-diablo",
+  "version": "0.1.0",
+  "description": "Diablo 2-style action RPG set in a low-poly Minecraft universe, built with Three.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 5173 .",
+    "dev": "npx --yes serve -l 5173 ."
+  },
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}
