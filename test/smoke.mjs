@@ -631,6 +631,85 @@ const jewels = await page.evaluate(async () => {
 console.log('✓ Joias/Faceta/Set3:', JSON.stringify(jewels));
 for (const [k, v] of Object.entries(jewels)) if (v === false) throw new Error('jewels falhou em: ' + k);
 
+// ===== Arqueiro c/ arco · Flecha fina · Baú c/ abas · Organizar · Drag/Drop no chão =====
+const qol = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const M = await import('http://localhost:5173/src/entities/monster.js');
+  const C = await import('http://localhost:5173/src/systems/combat.js');
+  const V3 = p.position.constructor;
+
+  // 1) Arqueiro esqueleto segura um arco; esqueleto melee não
+  const archer = M.makeMonster('skeleton_archer', 5, 'normal', g.difficultyObj, g.rng);
+  out.archerUsesBow = archer.usesBow === true && !!archer.parts.weaponMesh;
+  const meleeSkel = M.makeMonster('skeleton', 5, 'normal', g.difficultyObj, g.rng);
+  out.meleeNoBow = meleeSkel.usesBow === false && !meleeSkel.parts.weaponMesh;
+
+  // 2) Projétil de flecha: é um Group, marcado arrow:true, e o descarte (dispose) não lança
+  g.projectiles.forEach(pr => g.scene.remove(pr.mesh)); g.projectiles = [];
+  C.spawnProjectile(g, { origin: new V3(999, 1, 999), dir: new V3(1, 0, 0), speed: 20, range: 0.1, damage: 1, element: 'physical', owner: 'monster', arrow: true });
+  const proj = g.projectiles[0];
+  out.arrowSpawned = !!proj && proj.arrow === true && proj.mesh.type === 'Group';
+  let projErr = null;
+  try { C.updateProjectiles(g, 0.1); } catch (e) { projErr = e.message; }
+  out.arrowDisposedOk = projErr === null && g.projectiles.length === 0;
+
+  // 3) Baú com abas infinitas
+  g.stashTabs = [[]]; g.stashTab = 0;
+  const si1 = { id: 'sti1', name: 'Item A', rarity: 'magic', slot: 'helm', icon: '🪖', identified: true, mods: {} };
+  p.inventory.push(si1); g.moveToStash(si1);
+  out.stashStore = g.stash.includes(si1) && !p.inventory.includes(si1);
+  const tabsBefore = g.stashTabs.length;
+  g.addStashTab();
+  out.stashAddTab = g.stashTabs.length === tabsBefore + 1 && g.stashTab === tabsBefore;
+  const si2 = { id: 'sti2', name: 'Item B', rarity: 'rare', slot: 'body', icon: '🧥', identified: true, mods: {} };
+  p.inventory.push(si2); g.moveToStash(si2);
+  out.stashStoreTab2 = g.stash.includes(si2);
+  g.moveFromStash(si1); // item da aba 0 sai mesmo com a aba 1 ativa
+  out.stashCrossTab = p.inventory.includes(si1) && !g.stashTabs.flat().includes(si1);
+
+  // 4) Organizar inventário (sort) e reordenar via drag (move/troca)
+  p.inventory = [
+    { id: 'z1', name: 'Gema', kind: 'gem', rarity: 'normal', slot: 'gem', icon: '🔴', identified: true, mods: {} },
+    { id: 'z2', name: 'Espada', slot: 'weapon', rarity: 'rare', reqLevel: 10, icon: '⚔️', identified: true, mods: {} },
+  ];
+  g.sortInventory();
+  out.sortInv = p.inventory[0].slot === 'weapon' && p.inventory[1].kind === 'gem';
+  g.moveInventoryItem(0, 1);
+  out.moveSwap = p.inventory[0].id === 'z1' && p.inventory[1].id === 'z2';
+
+  // 5) Soltar no chão: sai do inventário, vira ground item e NÃO é recolhido na hora
+  g.groundItems.forEach(d => g.scene.remove(d.mesh)); g.groundItems = [];
+  const dropIt = { id: 'drop1', name: 'Solta', rarity: 'magic', slot: 'helm', icon: '🪖', identified: true, mods: {} };
+  p.inventory = [dropIt]; p.position.set(0, 0, 0);
+  g.dropItemToGround(dropIt);
+  out.dropRemoved = !p.inventory.includes(dropIt) && g.groundItems.length === 1;
+  const gi = g.groundItems[0];
+  out.dropFlagged = gi.playerDropped === true && gi.armPickup === false;
+  gi.position.set(0.5, 0.4, 0); // perto do jogador → ainda assim não recolhe (não "armado")
+  g._pickupGroundItems();
+  out.noInstantPickup = g.groundItems.includes(gi) && !p.inventory.includes(dropIt);
+  p.position.set(10, 0, 10); g._pickupGroundItems(); // afasta → arma
+  out.armed = gi.armPickup === true;
+  p.position.set(gi.position.x, 0, gi.position.z); g._pickupGroundItems(); // volta → recolhe
+  out.rePickup = !g.groundItems.includes(gi) && p.inventory.includes(dropIt);
+
+  // 6) DOM: botão organizar, zona de soltar, itens arrastáveis, abas do baú
+  p.inventory.push({ id: 'dragd', name: 'Drag', slot: 'helm', rarity: 'normal', icon: '🪖', identified: true, mods: {} });
+  g.ui.renderInventory(g);
+  const invPanel = document.getElementById('inventory-panel');
+  out.invSortBtn = !!invPanel.querySelector('.inv-sort');
+  out.invDropZone = !!invPanel.querySelector('.inv-dropzone');
+  const di = invPanel.querySelector('.inv-item');
+  out.invDraggable = !!di && di.getAttribute('draggable') === 'true';
+  g.ui.openStash(g);
+  out.stashDom = !!g.ui.modal.querySelector('.stash-tab') && !!g.ui.modal.querySelector('.stash-addtab') && !!g.ui.modal.querySelector('.stash-sort');
+  g.ui.modal.classList.add('hidden');
+
+  return out;
+});
+console.log('✓ Arco/Flecha/Baú-abas/Organizar/Drag:', JSON.stringify(qol));
+for (const [k, v] of Object.entries(qol)) if (v === false) throw new Error('qol falhou em: ' + k);
+
 // Super Único: percorre zonas até achar um (45% por zona)
 const su = await page.evaluate(async () => {
   const g = window.__game;
@@ -664,13 +743,38 @@ console.log('✓ Arena de Boss:', JSON.stringify(transitions.boss));
 if (transitions.cow.monsters < 10) throw new Error('cow level com poucas vacas');
 if (!transitions.boss.hasBoss) throw new Error('arena sem boss');
 
-// Recarrega a página e testa o botão CONTINUAR (save persistente em localStorage)
+// ===== 3 slots de save (isolados) =====
+const slots = await page.evaluate(async () => {
+  const g = window.__game; const out = {};
+  const S = await import('http://localhost:5173/src/systems/save.js');
+  for (let i = 0; i < 3; i++) S.clearSave(i);
+  out.allEmpty = !S.hasSave(0) && !S.hasSave(1) && !S.hasSave(2);
+  g.saveSlot = 2; g.save();                                  // salva no slot 2
+  out.savedSlot2 = S.hasSave(2) && !S.hasSave(0) && !S.hasSave(1);
+  const list = S.listSaves();
+  out.listLen3 = list.length === 3;
+  out.slot2Summary = !!list[2].summary && list[2].level === g.player.level;
+  out.slot0Empty = list[0].summary === null;
+  g.saveSlot = 1; g.save();                                  // outro slot, isolado
+  out.twoSlots = S.hasSave(1) && S.hasSave(2);
+  S.clearSave(1); S.clearSave(2);
+  out.cleared = !S.hasSave(1) && !S.hasSave(2);
+  g.saveSlot = 0; g.save();                                  // deixa o slot 0 p/ o teste de Continuar
+  out.slot0Saved = S.hasSave(0) && !S.hasSave(1) && !S.hasSave(2);
+  return out;
+});
+console.log('✓ Save slots (3):', JSON.stringify(slots));
+for (const [k, v] of Object.entries(slots)) if (v === false) throw new Error('slots falhou em: ' + k);
+
+// Recarrega a página e testa CONTINUAR pelo slot (save persistente em localStorage)
 await page.reload({ waitUntil: 'networkidle2' });
 await page.waitForFunction(() => { const t = document.getElementById('title-screen'); return t && !t.classList.contains('hidden'); }, { timeout: 15000 });
-const hasContinue = await page.$('#continue-button');
-console.log('✓ Botão Continuar presente após save:', !!hasContinue);
-if (!hasContinue) throw new Error('botão Continuar não apareceu com save existente');
-await page.click('#continue-button');
+const slotCount = await page.$$eval('.save-slot', els => els.length);
+const filledSlot = await page.$('.save-slot.filled');
+console.log('✓ Tela inicial com', slotCount, 'slots · slot 0 preenchido:', !!filledSlot);
+if (slotCount !== 3) throw new Error('esperava 3 cartões de slot, obteve ' + slotCount);
+if (!filledSlot) throw new Error('nenhum slot preenchido após salvar');
+await page.evaluate(() => { const b = document.querySelector('.save-slot.filled .slot-continue'); if (b) b.click(); });
 await page.waitForFunction(() => window.__game && window.__game.running && window.__game.player, { timeout: 10000 });
 const loaded = await page.evaluate(() => ({ cls: window.__game.player.cls.name, level: window.__game.player.level, zone: window.__game.zone.name }));
 console.log('✓ Continuar carregou o personagem salvo:', JSON.stringify(loaded));

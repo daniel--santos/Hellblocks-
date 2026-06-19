@@ -226,7 +226,7 @@ export function makeMonsterModel(shape, opts = {}) {
     case 'ghast': return makeGhast(opts);
     case 'cow': return makeCow(opts);
     default: {
-      const m = makeHumanoid({ color: opts.color, accent: opts.accent || 0x333333, scale: opts.scale, mono: true });
+      const m = makeHumanoid({ color: opts.color, accent: opts.accent || 0x333333, scale: opts.scale, mono: true, weapon: opts.weapon || null });
       return { group: m.group, parts: m.parts, body: m.parts.torso, anim: animateHumanoid };
     }
   }
@@ -246,9 +246,19 @@ export function makeWeapon(type) {
     orb.position.y = 0.15;
     g.add(shaft, orb);
   } else if (type === 'bow') {
-    const limb = box(0.08, 0.9, 0.08, 0x8a5a20);
-    limb.position.y = -0.35;
-    g.add(limb);
+    // Arco low-poly: madeira em arco vertical que se curva para FRENTE (+z), aproximado
+    // por segmentos ao longo de uma parábola, com a corda reta ligando as duas pontas.
+    const wood = 0x9a6a2a, str = 0xf2ead2;
+    const H = 0.56, bulge = 0.3, N = 9;
+    for (let i = 0; i < N; i++) {
+      const t = -1 + (2 * i) / (N - 1);          // -1 (ponta de baixo) .. +1 (ponta de cima)
+      const seg = box(0.07, (2 * H) / N + 0.05, 0.05, wood);
+      seg.position.set(0, t * H, bulge * (1 - t * t)); // y vertical, z arqueia pra frente
+      seg.rotation.x = Math.atan2(-2 * bulge * t, H); // alinha o segmento à tangente da curva
+      g.add(seg);
+    }
+    const string = box(0.016, 2 * H, 0.016, str); // corda reta, ligando as pontas
+    g.add(string);
   }
   return g;
 }

@@ -47,9 +47,10 @@ export class Monster {
       this.name = 'Campeão ' + def.name;
     }
 
-    // modelo
+    // modelo — arqueiros humanoides (esqueleto arqueiro, esqueleto gélido) seguram um arco
     const color = rank.color || def.color;
-    const m = makeMonsterModel(def.shape || 'humanoid', { color, accent: 0x333333, scale: rank.scale });
+    this.usesBow = (!def.shape || def.shape === 'humanoid') && def.ai === 'ranged';
+    const m = makeMonsterModel(def.shape || 'humanoid', { color, accent: 0x333333, scale: rank.scale, weapon: this.usesBow ? 'bow' : null });
     this.mesh = m.group;
     this.parts = m.parts;
     this.modelAnim = m.anim;
@@ -194,7 +195,7 @@ export class Monster {
     const tgt = this._tgt || { position: game.player.position };
     const origin = this.position.clone().setY(1.0);
     const dir = new THREE.Vector3().subVectors(tgt.position, origin).setY(0).normalize();
-    spawnProjectile(game, { origin, dir, speed: 14, range: this.range + 4, damage: this._dmgOut(game), element: this.element, owner: 'monster', slow: this.applySlow ? 0.4 : 0 });
+    spawnProjectile(game, { origin, dir, speed: 14, range: this.range + 4, damage: this._dmgOut(game), element: this.element, owner: 'monster', slow: this.applySlow ? 0.4 : 0, arrow: this.usesBow });
   }
 
   explode(game) {

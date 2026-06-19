@@ -18,6 +18,24 @@ function projMesh(element, size = 0.3) {
   return m;
 }
 
+// Flecha fina e alongada (haste + ponta + penas), com o eixo longo em +Z.
+// updateProjectiles orienta o grupo via lookAt(pos+dir), então a flecha voa "de ponta".
+function arrowMesh(element) {
+  const color = ELEMENT_COLOR[element] || 0xffffff;
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.8), new THREE.MeshBasicMaterial({ color: 0x6a4a2a }));
+  g.add(shaft);
+  const tip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.16), new THREE.MeshBasicMaterial({ color }));
+  tip.position.z = 0.46; g.add(tip);
+  // penas (fletching) na traseira, em cruz
+  const flh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.14), new THREE.MeshBasicMaterial({ color }));
+  flh.position.z = -0.34; g.add(flh);
+  const flv = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.18, 0.14), new THREE.MeshBasicMaterial({ color }));
+  flv.position.z = -0.34; g.add(flv);
+  const light = new THREE.PointLight(color, 0.5, 3); g.add(light);
+  return g;
+}
+
 // ---------- Conjuração ----------
 // Retorna true se conjurou (gastou mana / iniciou ação).
 export function castSkill(game, caster, skillId, targetPoint) {
@@ -57,6 +75,7 @@ export function castSkill(game, caster, skillId, targetPoint) {
           origin: origin.clone(), dir: d, speed: sk.speed || 22, range: sk.range || 16,
           damage: dmg, element: stats.element || 'physical', slow: stats.slow, owner: 'player',
           seek: sk.behavior === 'arrow_seek',
+          arrow: sk.behavior === 'arrow' || sk.behavior === 'arrow_seek',
         });
       }
       break;
@@ -158,15 +177,16 @@ function segDistXZ(pt, a, b) {
 
 // ---------- Projéteis ----------
 export function spawnProjectile(game, opts) {
-  const mesh = projMesh(opts.element, opts.spiral ? 0.4 : 0.3);
+  const mesh = opts.arrow ? arrowMesh(opts.element) : projMesh(opts.element, opts.spiral ? 0.4 : 0.3);
   mesh.position.copy(opts.origin);
+  if (opts.arrow) mesh.lookAt(opts.origin.x + opts.dir.x, opts.origin.y + opts.dir.y, opts.origin.z + opts.dir.z);
   game.scene.add(mesh);
   game.projectiles.push({
     mesh, pos: opts.origin.clone(), dir: opts.dir.clone(),
     speed: opts.speed, traveled: 0, range: opts.range,
     damage: opts.damage, element: opts.element, aoe: opts.aoe || 0,
     slow: opts.slow || 0, owner: opts.owner, seek: opts.seek || false,
-    spiral: opts.spiral || false, spiralT: 0, hit: new Set(),
+    spiral: opts.spiral || false, spiralT: 0, hit: new Set(), arrow: opts.arrow || false,
   });
 }
 
@@ -192,7 +212,9 @@ export function updateProjectiles(game, dt) {
     }
     p.traveled += step;
     p.mesh.position.copy(p.pos);
-    p.mesh.rotation.y += dt * 10;
+    // flechas apontam na direção do voo; bolts mágicos giram
+    if (p.arrow) p.mesh.lookAt(p.pos.x + p.dir.x, p.pos.y + p.dir.y, p.pos.z + p.dir.z);
+    else p.mesh.rotation.y += dt * 10;
 
     // colisão
     if (p.owner === 'player') {
@@ -231,7 +253,8 @@ function removeProjectile(game, p) {
   const i = game.projectiles.indexOf(p);
   if (i >= 0) game.projectiles.splice(i, 1);
   game.scene.remove(p.mesh);
-  p.mesh.geometry.dispose();
+  // a flecha é um Group (várias geometrias); o bolt é um Mesh único
+  p.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); });
 }
 
 // ---------- Explosões / áreas ----------

@@ -290,6 +290,30 @@ export function itemTooltipLines(item) {
   return lines;
 }
 
+// Ordena uma lista de itens do inventário/baú para gerência fácil (botão "Organizar"):
+// agrupa por categoria (equipamento → charm → joia → gema → runa), depois raridade
+// (único > set > raro > mágico > normal), depois nível requerido e nome. Função PURA.
+const _RARITY_SORT = { unique: 5, set: 4, rare: 3, magic: 2, normal: 1 };
+const _EQUIP_SLOT_ORDER = { weapon: 0, shield: 0, helm: 1, body: 1, gloves: 1, boots: 1, belt: 1, amulet: 2, ring: 2, ring2: 2 };
+function _itemCategory(it) {
+  if (it.kind === 'gem') return 7;
+  if (it.kind === 'rune') return 6;
+  if (it.kind === 'jewel') return 5;
+  if (it.slot === 'charm') return 4;
+  return _EQUIP_SLOT_ORDER[it.slot] ?? 3; // equipamento primeiro (0-3)
+}
+export function sortInventoryItems(items) {
+  return [...items].sort((a, b) => {
+    const ca = _itemCategory(a), cb = _itemCategory(b);
+    if (ca !== cb) return ca - cb;
+    const ra = _RARITY_SORT[a.rarity] || 0, rb = _RARITY_SORT[b.rarity] || 0;
+    if (ra !== rb) return rb - ra;
+    const la = a.reqLevel || 0, lb = b.reqLevel || 0;
+    if (la !== lb) return lb - la;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+
 export function statLabel(stat, val) {
   const pct = (v) => Math.round(v * 100) + '%';
   const map = {

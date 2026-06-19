@@ -305,4 +305,19 @@ ok(`agora há >=12 itens únicos (${UNIQUES.length})`, UNIQUES.length >= 12);
 ok(`agora há >=14 runewords (${RUNEWORDS.length})`, RUNEWORDS.length >= 14);
 ok('há 3 Facetas Arco-Íris (joias únicas)', UNIQUE_JEWELS.length === 3);
 
+// ---- Organizar inventário (botão de sort) ----
+import { sortInventoryItems } from '../src/systems/loot.js';
+const unsortedInv = [
+  { id: 'a', name: 'Rubi', kind: 'gem', rarity: 'normal', slot: 'gem', reqLevel: 1 },
+  { id: 'b', name: 'Espada Única', slot: 'weapon', rarity: 'unique', reqLevel: 30 },
+  { id: 'c', name: 'Elmo Mágico', slot: 'helm', rarity: 'magic', reqLevel: 12 },
+  { id: 'd', name: 'Espada Rara', slot: 'weapon', rarity: 'rare', reqLevel: 20 },
+  { id: 'e', name: 'Talismã', slot: 'charm', rarity: 'magic', reqLevel: 5 },
+];
+const sortedInv = sortInventoryItems(unsortedInv);
+ok('sort não muta o array original', unsortedInv.length === 5 && unsortedInv[0].id === 'a');
+ok('sort põe equipamento (arma) antes de gema', sortedInv[0].slot === 'weapon' && sortedInv[sortedInv.length - 1].kind === 'gem');
+ok('sort: mesma categoria → raridade maior primeiro', sortedInv[0].rarity === 'unique' && sortedInv[1].rarity === 'rare');
+ok('sort agrupa categorias (charm antes de gema)', sortedInv.findIndex(x => x.slot === 'charm') < sortedInv.findIndex(x => x.kind === 'gem'));
+
 console.log(`\n${pass} verificações passaram.`);

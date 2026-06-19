@@ -8,6 +8,7 @@ ARPG estilo **Diablo II** ambientado no universo **Minecraft**, todo **low-poly*
 > Personagens low-poly estilo "Steve" (cabeça com rosto, cabelo, mãos e botas); mobs humanoides uniformes
 > por cor (esqueletos brancos, zumbis verdes) e **modelos próprios para não-humanoides**: aranha,
 > creeper, blaze (flutuante com hastes), ghast (flutuante com tentáculos) e vaca — cada um com animação própria.
+> Os **arqueiros** (Arqueiro Esqueleto, Esqueleto Gélido) empunham um **arco** na mão e disparam **flechas finas**.
 
 ![estética](test/shot-wilderness.png)
 
@@ -98,7 +99,8 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
   - 1 item raro + 1 gema → re-rola o raro
   - 1 item mágico + 1 gema → re-rola o mágico
   - runa **Hel** + item encravado → esvazia os soquetes
-- **Baú de armazenamento (Stash)** com 48 espaços.
+- **Baú de armazenamento (Stash)** com **abas infinitas** (48 espaços por aba; cria abas sob demanda) e botão de **Organizar**.
+- **Gerência do inventário**: botão **Organizar** (ordena por categoria → raridade → nível requerido) e **arrastar-e-soltar** (drag-and-drop) para **reordenar** itens, **equipar** soltando num slot de equipamento, ou **jogar no chão** numa zona de descarte. Item solto só pode ser recoletado depois que o jogador se afasta (evita pegá-lo de volta na hora).
 
 ### Monstros & mundo
 - **Ranks** normal/campeão/único/boss, com **afixos de monstro** (Veloz, Encantado-Fogo, Pele de Pedra, etc.), **imunidades elementais** (dificuldades altas) e resistências.
@@ -121,7 +123,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Penalidade de morte**: perde 10% do ouro; e **perde XP** em Pesadelo/Inferno (sem descer de nível), como no D2. O Cow Level dá um charm garantido como recompensa secreta.
 
 ### Personagem & persistência
-- **Salvar/Carregar**: o personagem é salvo em `localStorage` (autosave ao subir de nível, aprender skill e entrar na cidade); a tela inicial mostra **Continuar** com um resumo (classe/nível/ato/dificuldade).
+- **Salvar/Carregar com 3 slots de personagem**: cada personagem é salvo em `localStorage` num **slot** próprio (autosave ao subir de nível, aprender skill e entrar na cidade). A tela inicial mostra os **3 slots** — cada slot cheio traz um resumo (classe/nível/ato/dificuldade) com **Continuar** e **Apagar**; slots vazios criam um **novo personagem**. (O save antigo de slot único é migrado para o Slot 1.)
 - **Modo Hardcore**: opção na criação — ao morrer, o personagem é **apagado permanentemente** (morte permanente do D2).
 - **Títulos por dificuldade**: ao vencer o ato final em cada dificuldade, ganha um título (Normal → Sir/Dama, Pesadelo → Conde(ssa), Inferno → Barão/Baronesa), exibido no HUD e na ficha.
 - **Aura ativa única** (Guardião): escolhe-se **uma** aura ativa por vez na árvore de skills (estilo Paladino do D2); passivas sempre valem.
@@ -130,7 +132,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 ### Combate
 - Físico + elementos (fogo/gelo/raio/veneno/mágico) com **resistências** (cap 75%, +máx por afixo), **crítico**, **roubo de vida**, **esquiva**, **bloqueio**, e status: **lentidão / atordoamento / queimadura**.
 - **Seleção tolerante de inimigos**: cada monstro tem uma hitbox 3D generosa (não só os cubinhos do corpo), com fallback por proximidade do cursor; projéteis usam colisão por varredura (sem atravessar inimigos rápidos).
-- Skills: projéteis, multishot, novas, áreas no chão (meteoro/nevasca/armadilhas), raio em cadeia, investida, buffs e auras (sempre ativas, simplificado).
+- Skills: projéteis, multishot, novas, áreas no chão (meteoro/nevasca/armadilhas), raio em cadeia, investida, buffs e auras (sempre ativas, simplificado). **Flechas** (skills de arco e arqueiros) são projéteis **finos e alongados**, orientados na direção do voo; bolts mágicos giram.
 
 ## Estrutura
 
@@ -148,14 +150,14 @@ src/
 ## Testes
 
 ```bash
-node test/logic.test.mjs   # 115 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, hardcore, super único, save/continuar, cow, boss
+node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 
 `smoke.mjs`/`screenshot.mjs` usam o Chrome do sistema via `puppeteer-core`
 (defina `CHROME_PATH` se necessário) e exigem o servidor rodando em `:5173`.
-Status atual: **logic 115/115** e **smoke sem erros de runtime** (WebGL via swiftshader no headless),
+Status atual: **logic 119/119** e **smoke sem erros de runtime** (WebGL via swiftshader no headless),
 incluindo save/load com recarga de página e o botão **Continuar**.
 
 ## Notas / limitações honestas
@@ -170,5 +172,5 @@ incluindo save/load com recarga de página e o botão **Continuar**.
 
 ## Próximos passos naturais
 
-- Completar as 30 skills por classe, inventário em grade arrastável (drag-and-drop),
-  troca de armas (weapon swap), mais auras de mercenário selecionáveis (estilo Ato 2) e ainda mais uniques/sets/joias.
+- Completar as 30 skills por classe, troca de armas (weapon swap), mais auras de
+  mercenário selecionáveis (estilo Ato 2) e ainda mais uniques/sets/joias.

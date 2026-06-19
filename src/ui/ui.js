@@ -18,7 +18,7 @@ export class UI {
   constructor() {
     this.el = {
       loading: $('loading-screen'), title: $('title-screen'), hud: $('hud'),
-      classSelect: $('class-select'), diffSelect: $('difficulty-select'), startBtn: $('start-button'),
+      classSelect: $('class-select'), diffSelect: $('difficulty-select'), startBtn: $('start-button'), saveSlots: $('save-slots'),
       lifeFill: $('globe-life').querySelector('.globe-fill'), lifeLabel: $('globe-life').querySelector('.globe-label'),
       manaFill: $('globe-mana').querySelector('.globe-fill'), manaLabel: $('globe-mana').querySelector('.globe-label'),
       belt: $('skill-belt'), xpFill: $('xp-fill'), xpLabel: $('xp-label'),
@@ -93,20 +93,15 @@ export class UI {
   // ----- Telas -----
   hideLoading() { this.el.loading.classList.add('hidden'); }
 
-  showTitle(onStart, save = {}) {
+  showTitle(args) {
+    this._titleArgs = args;
     this.el.title.classList.remove('hidden');
-    // botão Continuar (se houver save)
-    let cont = document.getElementById('continue-button');
-    if (cont) cont.remove();
-    if (save.hasSave) {
-      cont = document.createElement('button');
-      cont.id = 'continue-button';
-      cont.className = 'big-button';
-      cont.style.marginRight = '10px';
-      cont.innerHTML = `▶ CONTINUAR<br><span style="font-size:11px;color:#a99b7c">${save.summary || ''}</span>`;
-      cont.onclick = () => { this.el.title.classList.add('hidden'); save.onContinue(); };
-      this.el.startBtn.parentNode.insertBefore(cont, this.el.startBtn);
-    }
+    // remove eventual botão Continuar legado
+    const oldCont = document.getElementById('continue-button'); if (oldCont) oldCont.remove();
+    // 3 slots de save: seleciona o primeiro vazio (para um novo personagem)
+    const firstEmpty = args.slots.find(s => !s.summary);
+    this.selectedSlot = firstEmpty ? firstEmpty.slot : null;
+    this._renderSaveSlots();
     // cards de classe
     this.el.classSelect.innerHTML = '';
     for (const c of CLASS_LIST) {
@@ -142,9 +137,58 @@ export class UI {
     this.el.diffSelect.appendChild(hc);
 
     this.el.startBtn.onclick = () => {
+      const a = this._titleArgs;
+      let slot = this.selectedSlot;
+      // se o slot selecionado estiver cheio (ou nenhum), usa o primeiro vazio
+      if (slot == null || (a.slots[slot] && a.slots[slot].summary)) {
+        const e = a.slots.find(s => !s.summary); slot = e ? e.slot : null;
+      }
+      if (slot == null) return; // todos cheios (botão fica desabilitado)
       this.el.title.classList.add('hidden');
-      onStart(this.selectedClass, this.selectedDiff, this.hardcore);
+      a.onStart(this.selectedClass, this.selectedDiff, this.hardcore, slot);
     };
+    this._updateStartLabel();
+  }
+
+  // desenha os 3 cartões de slot (Continuar/Apagar nos cheios; selecionável nos vazios)
+  _renderSaveSlots() {
+    const a = this._titleArgs;
+    const cont = this.el.saveSlots;
+    cont.innerHTML = '';
+    a.slots.forEach((s) => {
+      const filled = !!s.summary;
+      const card = document.createElement('div');
+      card.className = 'save-slot' + (filled ? ' filled' : '') + (!filled && this.selectedSlot === s.slot ? ' selected' : '');
+      const title = document.createElement('div'); title.className = 'slot-title';
+      title.textContent = `Slot ${s.slot + 1}` + (filled && s.hardcore ? ' ☠️' : '');
+      const sum = document.createElement('div'); sum.className = 'slot-sum';
+      sum.textContent = filled ? s.summary : 'Vazio — novo personagem';
+      card.append(title, sum);
+      if (filled) {
+        const btns = document.createElement('div'); btns.className = 'slot-btns';
+        const go = document.createElement('button'); go.className = 'alloc-btn slot-continue'; go.textContent = '▶ Continuar';
+        go.onclick = () => { this.el.title.classList.add('hidden'); a.onContinue(s.slot); };
+        const del = document.createElement('button'); del.className = 'alloc-btn slot-delete'; del.textContent = '🗑 Apagar';
+        del.onclick = () => {
+          if (del.dataset.armed) {
+            a.onDelete(s.slot); s.summary = null; s.hardcore = false; this.selectedSlot = s.slot;
+            this._renderSaveSlots(); this._updateStartLabel();
+          } else { del.dataset.armed = '1'; del.textContent = '⚠ Confirmar?'; }
+        };
+        btns.append(go, del); card.appendChild(btns);
+      } else {
+        card.onclick = () => { this.selectedSlot = s.slot; this._renderSaveSlots(); this._updateStartLabel(); };
+      }
+      cont.appendChild(card);
+    });
+  }
+
+  _updateStartLabel() {
+    const a = this._titleArgs; if (!a) return;
+    let slot = this.selectedSlot;
+    if (slot == null || (a.slots[slot] && a.slots[slot].summary)) { const e = a.slots.find(s => !s.summary); slot = e ? e.slot : null; }
+    this.el.startBtn.textContent = slot == null ? 'TODOS OS SLOTS CHEIOS' : `ENTRAR EM SANCTUBLOCK (Slot ${slot + 1})`;
+    this.el.startBtn.disabled = slot == null;
   }
 
   showHUD() { this.el.hud.classList.remove('hidden'); }
@@ -429,6 +473,11 @@ export class UI {
     const p = game.player;
     let html = `<h2>Inventário · ${p.gold} 🪙 · ${p.scrolls.id}📜 ${p.scrolls.tp}🌀</h2>`;
     if (game._socketSource) html += `<div class="skillpoints-info">Soquetando: ${game._socketSource.icon} ${game._socketSource.name} — clique num item com soquete vazio (Esc cancela).</div>`;
+    // barra: organizar + zona de soltar no chão (drag-and-drop)
+    html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">`;
+    html += `<button class="alloc-btn inv-sort">⤴️ Organizar</button>`;
+    html += `<div class="inv-dropzone" style="flex:1;text-align:center;font-size:11px;color:#a98;border:1px dashed #5a4a2a;padding:4px;border-radius:4px">🗑️ arraste um item aqui para soltar no chão</div>`;
+    html += `</div>`;
     // equipados
     html += `<div class="equip-row">`;
     const slots = [['weapon', 'Arma'], ['shield', 'Escudo'], ['helm', 'Elmo'], ['body', 'Peito'], ['gloves', 'Luvas'], ['boots', 'Botas'], ['belt', 'Cinto'], ['amulet', 'Amuleto'], ['ring', 'Anel'], ['ring2', 'Anel']];
@@ -445,10 +494,10 @@ export class UI {
         const unid = it.identified === false ? ' style="filter:grayscale(0.6);outline:1px dashed #888"' : '';
         const charm = it.slot === 'charm' ? ' title="Charm (bônus passivo)"' : '';
         const sock = it.sockets ? `<span style="position:absolute;bottom:0;right:1px;font-size:9px;color:#9df">◆${it.socketed?.length || 0}/${it.sockets}</span>` : '';
-        html += `<div class="inv-cell"><div class="inv-item ${r.cssClass}" data-idx="${i}"${unid}${charm}>${it.icon}${sock}</div></div>`;
-      } else html += `<div class="inv-cell"></div>`;
+        html += `<div class="inv-cell" data-cell="${i}"><div class="inv-item ${r.cssClass}" draggable="true" data-idx="${i}"${unid}${charm}>${it.icon}${sock}</div></div>`;
+      } else html += `<div class="inv-cell" data-cell="${i}"></div>`;
     }
-    html += `</div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Clique: equipar / identificar (se não-ID). Charms dão bônus no inventário. Clique num equipado para remover.</p>`;
+    html += `</div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Clique: equipar / identificar (se não-ID). Arraste para reordenar, soltar num slot p/ equipar, ou na zona acima p/ jogar no chão. Charms dão bônus no inventário.</p>`;
     this.el.invPanel.innerHTML = html;
 
     this.el.invPanel.querySelectorAll('.inv-item').forEach(node => {
@@ -481,6 +530,47 @@ export class UI {
         };
       }
     });
+
+    // --- drag-and-drop: reordenar, equipar arrastando no slot, ou soltar no chão ---
+    this.el.invPanel.querySelectorAll('.inv-item').forEach(node => {
+      node.ondragstart = (ev) => {
+        this._dragFrom = +node.dataset.idx;
+        this._dragItem = p.inventory[this._dragFrom];
+        if (ev.dataTransfer) { ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', node.dataset.idx); }
+        this.hideTooltip();
+      };
+      node.ondragend = () => { this._dragItem = null; };
+    });
+    this.el.invPanel.querySelectorAll('.inv-cell').forEach(cell => {
+      cell.ondragover = (ev) => ev.preventDefault();
+      cell.ondrop = (ev) => {
+        ev.preventDefault();
+        if (this._dragItem == null) return;
+        game.moveInventoryItem(this._dragFrom, +cell.dataset.cell);
+        this._dragItem = null; this.renderInventory(game);
+      };
+    });
+    this.el.invPanel.querySelectorAll('.equip-slot').forEach(node => {
+      node.ondragover = (ev) => ev.preventDefault();
+      node.ondrop = (ev) => {
+        ev.preventDefault();
+        const it = this._dragItem; this._dragItem = null;
+        if (!it) return;
+        if (it.identified === false) { this.log('Identifique o item antes de equipar.', 'dmg'); return; }
+        if (it.kind === 'gem' || it.kind === 'rune' || it.kind === 'jewel' || it.slot === 'charm') { this.log('Esse item não vai num slot de equipamento.', 'dmg'); return; }
+        if (it.reqLevel > p.level) { this.log(`Requer nível ${it.reqLevel}!`, 'dmg'); return; }
+        const res = p.equip(it);
+        if (res && res.ok === false) this.log(`Não pode equipar: ${res.reason}`, 'dmg');
+        this.renderInventory(game);
+      };
+    });
+    const dz = this.el.invPanel.querySelector('.inv-dropzone');
+    if (dz) {
+      dz.ondragover = (ev) => ev.preventDefault();
+      dz.ondrop = (ev) => { ev.preventDefault(); const it = this._dragItem; this._dragItem = null; if (it) { game.dropItemToGround(it); this.renderInventory(game); } };
+    }
+    const sortBtn = this.el.invPanel.querySelector('.inv-sort');
+    if (sortBtn) sortBtn.onclick = () => { game.sortInventory(); this.renderInventory(game); };
   }
 
   renderTree(game) {
@@ -679,16 +769,29 @@ export class UI {
   renderStash(game) {
     const p = game.player;
     const itemBtn = (it, action) => `<button class="alloc-btn ${action}" data-id="${it.id}" style="display:block;width:100%;text-align:left;margin:1px 0">${it.icon} ${it.name}</button>`;
-    let html = `<h2>🗄️ Baú de Armazenamento</h2><div style="display:flex;gap:16px">`;
-    html += `<div style="flex:1"><b>Baú (${game.stash.length}/48)</b><div style="max-height:300px;overflow:auto">`;
-    html += game.stash.map(it => itemBtn(it, 'stash-out')).join('') || '<p style="color:#8a7a5a;font-size:12px">vazio</p>';
+    const tab = game.stash; // aba ativa
+    let html = `<h2>🗄️ Baú de Armazenamento</h2>`;
+    // abas (infinitas) + botão de nova aba
+    html += `<div class="stash-tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">`;
+    game.stashTabs.forEach((t, i) => {
+      const on = i === game.stashTab;
+      html += `<button class="alloc-btn stash-tab" data-i="${i}" style="${on ? 'background:#5a4a2a;color:#ffe8b0' : ''}">Aba ${i + 1} · ${t.length}</button>`;
+    });
+    html += `<button class="alloc-btn stash-addtab" title="Nova aba">➕ Nova aba</button>`;
+    html += `</div>`;
+    html += `<div style="display:flex;gap:16px">`;
+    html += `<div style="flex:1"><b>Baú · Aba ${game.stashTab + 1} (${tab.length}/48)</b> <button class="alloc-btn stash-sort">⤴️ Organizar</button><div style="max-height:300px;overflow:auto">`;
+    html += tab.map(it => itemBtn(it, 'stash-out')).join('') || '<p style="color:#8a7a5a;font-size:12px">vazio</p>';
     html += `</div></div>`;
     html += `<div style="flex:1"><b>Inventário</b><div style="max-height:300px;overflow:auto">`;
     html += p.inventory.map(it => itemBtn(it, 'stash-in')).join('') || '<p style="color:#8a7a5a;font-size:12px">vazio</p>';
-    html += `</div></div></div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Itens guardados não somam bônus. Esc para fechar.</p>`;
+    html += `</div></div></div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Abas infinitas — itens guardados não somam bônus. Esc para fechar.</p>`;
     this.modal.innerHTML = html;
     this.modal.querySelectorAll('.stash-in').forEach(n => n.onclick = () => { game.moveToStash(p.inventory.find(x => x.id === n.dataset.id)); this.renderStash(game); });
-    this.modal.querySelectorAll('.stash-out').forEach(n => n.onclick = () => { game.moveFromStash(game.stash.find(x => x.id === n.dataset.id)); this.renderStash(game); });
+    this.modal.querySelectorAll('.stash-out').forEach(n => n.onclick = () => { game.moveFromStash(game.stashTabs.flat().find(x => x.id === n.dataset.id)); this.renderStash(game); });
+    this.modal.querySelectorAll('.stash-tab').forEach(n => n.onclick = () => { game.setStashTab(+n.dataset.i); this.renderStash(game); });
+    this.modal.querySelector('.stash-addtab').onclick = () => { game.addStashTab(); this.renderStash(game); };
+    this.modal.querySelector('.stash-sort').onclick = () => { game.sortStash(); this.renderStash(game); };
   }
 
   // ----- Quests -----

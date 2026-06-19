@@ -13,7 +13,7 @@ import { ACTS, COW_LEVEL, getAct, ACT_LORE } from './data/acts.js';
 import { DIFFICULTIES, DIFFICULTY_LIST } from './systems/difficulty.js';
 import { buildTown } from './world/town.js';
 import { buildWilderness, buildBossArena, buildCowLevel } from './world/generator.js';
-import { rollDrops, generateItem, nextItemId, makeUnique } from './systems/loot.js';
+import { rollDrops, generateItem, nextItemId, makeUnique, sortInventoryItems } from './systems/loot.js';
 import { getInsertable } from './data/gems.js';
 import { monsterBaseXP, xpLevelPenalty, xpToReach } from './systems/leveling.js';
 import { buildActQuests } from './data/quests.js';
@@ -25,7 +25,7 @@ import { Mercenary, mercForAct, hireCost, MERC_TYPES } from './entities/mercenar
 import { Summon } from './entities/summon.js';
 import { insertIntoSocket, emptySockets } from './systems/sockets.js';
 import { transmute } from './systems/cube.js';
-import { saveGame, loadSaveData, hasSave, clearSave, saveSummary } from './systems/save.js';
+import { saveGame, loadSaveData, clearSave, listSaves } from './systems/save.js';
 import { generateShopStock, gambleRoll, buyPrice, sellPrice, gamblePrice, CONSUMABLE_PRICES } from './systems/economy.js';
 import { shrineBuffLabel } from './data/shrines.js';
 
@@ -57,7 +57,9 @@ class Game {
     this._questAct = -1;
     this.returnPoint = null;     // ponto de retorno do Town Portal
     this.cube = [];              // conteúdo do Cubo Horadric
-    this.stash = [];             // baú de armazenamento
+    this.stashTabs = [[]];       // baú com ABAS infinitas (cada aba = array de itens)
+    this.stashTab = 0;           // aba ativa do baú
+    this.saveSlot = 0;           // slot de save ativo (0..2)
     this._socketSource = null;   // gema/runa selecionada para soquetar
     this.zoneGroup = null;
     this.seedStr = 'sanctublock-' + Math.floor(performance.now());
@@ -76,15 +78,18 @@ class Game {
   start() {
     setTimeout(() => {
       this.ui.hideLoading();
-      this.ui.showTitle(
-        (classId, diffId, hardcore) => this._beginGame(classId, diffId, hardcore),
-        { hasSave: hasSave(), summary: saveSummary(), onContinue: () => this._continueGame() }
-      );
+      this.ui.showTitle({
+        slots: listSaves(),
+        onStart: (classId, diffId, hardcore, slot) => this._beginGame(classId, diffId, hardcore, slot),
+        onContinue: (slot) => this._continueGame(slot),
+        onDelete: (slot) => clearSave(slot),
+      });
     }, 600);
     requestAnimationFrame(() => this._loop());
   }
 
-  _beginGame(classId, diffId, hardcore) {
+  _beginGame(classId, diffId, hardcore, slot = 0) {
+    this.saveSlot = slot;
     this.player = new Player(classId);
     this.hardcore = !!hardcore;
     this.difficulty = diffId;
@@ -101,9 +106,10 @@ class Game {
     this.save();
   }
 
-  // Carrega o personagem salvo (localStorage).
-  _continueGame() {
-    const data = loadSaveData();
+  // Carrega o personagem salvo do slot (localStorage).
+  _continueGame(slot = 0) {
+    this.saveSlot = slot;
+    const data = loadSaveData(slot);
     if (!data) { this.log('Nenhum save encontrado.', 'dmg'); return; }
     this.player = new Player(data.classId);
     const p = this.player;
@@ -122,7 +128,11 @@ class Game {
     this.titleRank = data.titleRank || 0;
     this.actIndex = data.actIndex || 0;
     this.zoneIndex = data.zoneIndex || 0;
-    this.stash = data.stash || [];
+    // baú: aceita o novo formato (abas) e o antigo (array plano) para compatibilidade
+    this.stashTabs = Array.isArray(data.stashTabs) && data.stashTabs.length
+      ? data.stashTabs
+      : [data.stash || []];
+    this.stashTab = 0;
     this.waypointList = data.waypointList || [];
     this.questLog = data.questLog || buildActQuests(this.actIndex);
     this.killCount = data.killCount || 0;
@@ -138,7 +148,7 @@ class Game {
     this.log(`Bem-vindo de volta, ${p.cls.name} (Nível ${p.level})!`, 'unique');
   }
 
-  save() { saveGame(this); }
+  save() { saveGame(this, this.saveSlot); }
 
   // ---------- Carregamento de zonas ----------
   _clearZone() {
@@ -419,6 +429,11 @@ class Game {
     const p = this.player.position;
     for (let i = this.groundItems.length - 1; i >= 0; i--) {
       const d = this.groundItems[i];
+      // item solto pelo jogador só pode ser recolhido depois que ele sair do raio (evita pegar de volta na hora)
+      if (d.playerDropped && !d.armPickup) {
+        if (d.position.distanceTo(p) > 1.7) d.armPickup = true;
+        continue;
+      }
       if (d.position.distanceTo(p) < 1.4) {
         if (d.type === 'gold') { this.player.gold += d.amount; this.log(`+${d.amount} ouro`); }
         else if (d.type === 'potion') {
@@ -450,9 +465,9 @@ class Game {
     this.player.dead = true;
     this.running = false;
     this.input.setEnabled(false);
-    // HARDCORE: morte permanente — apaga o save e força recomeço
+    // HARDCORE: morte permanente — apaga o save do slot e força recomeço
     if (this.hardcore) {
-      clearSave();
+      clearSave(this.saveSlot);
       this.log('☠️ MORTE PERMANENTE (Hardcore). Seu personagem se foi.', 'unique');
       this.ui.showDeath(() => { location.reload(); }, true);
       return;
@@ -968,16 +983,54 @@ class Game {
     return res.ok;
   }
 
-  // ---------- Stash ----------
+  // ---------- Stash (baú com abas infinitas) ----------
+  get stash() { return this.stashTabs[this.stashTab] || (this.stashTabs[this.stashTab] = []); }
+  addStashTab() { this.stashTabs.push([]); this.stashTab = this.stashTabs.length - 1; return this.stashTab; }
+  setStashTab(i) { if (i >= 0 && i < this.stashTabs.length) this.stashTab = i; }
   moveToStash(item) {
-    if (this.stash.length >= 48) { this.log('Baú cheio.', 'dmg'); return; }
-    const i = this.player.inventory.indexOf(item);
-    if (i >= 0) { this.player.inventory.splice(i, 1); this.stash.push(item); this.player.recompute(); }
+    const idx = this.player.inventory.indexOf(item);
+    if (idx < 0) return;
+    // aba ativa; se cheia (48), reusa/cria uma aba com espaço — abas são infinitas
+    let tab = this.stash;
+    if (tab.length >= 48) {
+      tab = this.stashTabs.find(t => t.length < 48);
+      if (!tab) { this.stashTabs.push([]); tab = this.stashTabs[this.stashTabs.length - 1]; }
+    }
+    this.player.inventory.splice(idx, 1);
+    tab.push(item);
+    this.player.recompute();
   }
   moveFromStash(item) {
     if (this.player.inventory.length >= 40) { this.log('Inventário cheio.', 'dmg'); return; }
-    const i = this.stash.indexOf(item);
-    if (i >= 0) { this.stash.splice(i, 1); this.player.inventory.push(item); }
+    for (const tab of this.stashTabs) {
+      const i = tab.indexOf(item);
+      if (i >= 0) { tab.splice(i, 1); this.player.inventory.push(item); return; }
+    }
+  }
+  sortStash() { this.stashTabs[this.stashTab] = sortInventoryItems(this.stash); }
+
+  // ---------- Inventário: organizar / arrastar / soltar ----------
+  sortInventory() { this.player.inventory = sortInventoryItems(this.player.inventory); }
+  // move/troca um item dentro do inventário (drag-and-drop de reordenação)
+  moveInventoryItem(from, to) {
+    const inv = this.player.inventory;
+    if (from == null || from < 0 || from >= inv.length || from === to) return;
+    const item = inv[from];
+    if (to == null || to >= inv.length) { inv.splice(from, 1); inv.push(item); } // célula vazia → vai pro fim
+    else if (to >= 0) { inv[from] = inv[to]; inv[to] = item; }                    // troca com o destino
+  }
+  // solta um item do inventário no chão, perto do jogador (drag para fora / drop zone)
+  dropItemToGround(item) {
+    const inv = this.player.inventory;
+    const i = inv.indexOf(item);
+    if (i < 0) return false;
+    inv.splice(i, 1);
+    this._spawnGroundItem({ type: 'item', item }, this.player.position, (this._dropSpin = (this._dropSpin || 0) + 1));
+    const gi = this.groundItems[this.groundItems.length - 1];
+    if (gi) { gi.playerDropped = true; gi.armPickup = false; } // não recolhe na hora
+    this.player.recompute(); // remover um charm pode mudar stats
+    this.log(`Soltou no chão: ${item.name}`, RARITY[item.rarity]?.cssClass || '');
+    return true;
   }
 
   // buffs de santuário expiram e atualizam multiplicadores
