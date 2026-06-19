@@ -104,6 +104,52 @@ export function makeHumanoid({ color = 0x88aacc, accent = 0xffffff, scale = 1, w
   };
 }
 
+// Aldeão (Villager) estilo Minecraft: cabeça grande com NARIZ comprido + monocelha,
+// roupão longo até o chão (mais largo embaixo), braços cruzados na frente e a cor da
+// profissão no avental. robe=cor do roupão, apron=faixa da profissão, skin=pele.
+export function makeVillager({ robe = 0x7a6a55, apron = 0x3a2e1f, skin = 0xbd9b71, scale = 1.0 } = {}) {
+  const g = new THREE.Group();
+  const robeDk = shade(robe, 0.82);
+
+  // ----- Roupão (corpo) — duas caixas: saia larga embaixo, torso em cima -----
+  const skirt = box(0.74, 0.62, 0.58, robeDk); skirt.position.y = 0.43; g.add(skirt);
+  const torso = box(0.62, 0.62, 0.5, robe); torso.position.y = 1.02; g.add(torso);
+  // avental / faixa da profissão na frente
+  const apronB = box(0.5, 0.92, 0.05, apron); apronB.position.set(0, 0.82, 0.28); g.add(apronB);
+  const collar = box(0.62, 0.12, 0.52, shade(robe, 1.12)); collar.position.y = 1.3; g.add(collar);
+
+  // ----- Cabeça grande -----
+  const head = box(0.62, 0.62, 0.6, skin); head.position.y = 1.66; g.add(head);
+  // NARIZ comprido (a marca do aldeão) — relativo à cabeça
+  const nose = box(0.17, 0.4, 0.3, shade(skin, 0.88)); nose.position.set(0, -0.08, 0.37); head.add(nose);
+  // monocelha (unibrow) escura
+  const brow = box(0.5, 0.08, 0.05, 0x2e2016); brow.position.set(0, 0.12, 0.3); head.add(brow);
+  // olhos
+  const eyeL = box(0.12, 0.16, 0.04, 0xf3f3f3); eyeL.position.set(-0.18, -0.02, 0.305); head.add(eyeL);
+  const eyeR = eyeL.clone(); eyeR.position.x = 0.18; head.add(eyeR);
+  const pupL = box(0.07, 0.1, 0.03, 0x5a3a6a); pupL.position.set(-0.18, -0.02, 0.33); head.add(pupL);
+  const pupR = pupL.clone(); pupR.position.x = 0.18; head.add(pupR);
+
+  // ----- Braços cruzados na frente (pose clássica do aldeão) -----
+  const mkArm = (x) => {
+    const arm = box(0.18, 0.5, 0.22, robe);
+    arm.position.set(x, 0.96, 0.12);
+    arm.rotation.x = -0.5;            // inclina os antebraços para frente
+    arm.rotation.z = x > 0 ? 0.32 : -0.32; // junta as mãos no centro
+    g.add(arm);
+    return arm;
+  };
+  mkArm(-0.34); mkArm(0.34);
+  // mãos juntas na barriga
+  const hands = box(0.3, 0.2, 0.22, skin); hands.position.set(0, 0.7, 0.34); g.add(hands);
+
+  // ----- Pés saindo por baixo do roupão -----
+  for (const fx of [-0.14, 0.14]) { const f = box(0.18, 0.12, 0.24, 0x2e241a); f.position.set(fx, 0.06, 0.06); g.add(f); }
+
+  g.scale.setScalar(scale);
+  return { group: g, parts: { head, nose, torso } };
+}
+
 // ---- Modelos de monstros NÃO-humanoides (estética cúbica Minecraft) ----
 // Cada um retorna { group, parts, body, anim } onde body é o mesh do flash de dano
 // e anim(parts, t, moving, attackPhase) anima.

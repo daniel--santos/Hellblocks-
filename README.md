@@ -9,6 +9,7 @@ ARPG estilo **Diablo II** ambientado no universo **Minecraft**, todo **low-poly*
 > por cor (esqueletos brancos, zumbis verdes) e **modelos próprios para não-humanoides**: aranha,
 > creeper, blaze (flutuante com hastes), ghast (flutuante com tentáculos) e vaca — cada um com animação própria.
 > Os **arqueiros** (Arqueiro Esqueleto, Esqueleto Gélido) empunham um **arco** na mão e disparam **flechas finas**.
+> Os **NPCs da cidade são Aldeões** (Villagers) — nariz comprido, monocelha e roupão com a cor da profissão.
 
 ![estética](test/shot-wilderness.png)
 
@@ -111,6 +112,8 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Waypoints** descobríveis com **teleporte** entre áreas visitadas.
 
 ### Cidade, economia & companheiros
+- **Vila de planície (Ato I)** no capricho do Minecraft: casas de tronco+gesso com telhado de duas águas, **poço** central, **sino** da vila, **postes-lanterna**, **barraca de mercado**, **forja** (bigorna + lava), **fazenda** cercada de trigo com **fardos de feno**, animais, caminhos de cascalho, árvores e flores. A saída para a selva é um **portão** na borda da vila (pilares de pedra, viga de madeira e cercas), no fim da estrada principal. (Atos II–IV mantêm a praça de pedregulho.)
+- **NPCs são Aldeões (Villagers)**: cabeça grande com nariz comprido e monocelha, roupão e braços cruzados, com a **cor da profissão** (Ferreiro = avental de couro, Curandeira = clérigo roxo, Mercador = avental azul de mercador).
 - **Lojas + Aposta (Gambling)**: Ferreiro/Mercador vendem itens e consumíveis e **compram** os seus; o **Ferreiro repara** e **imbui** (transforma um item normal em raro, estilo Charsi); o Mercador deixa **apostar** por itens misteriosos (chance de raro/único).
 - **Mercenário (hireling)**: contratado na Curandeira, luta ao seu lado (Arqueira, Guarda, Lobo de Ferro, Bárbaro — por ato); pode morrer e ser revivido por ouro, e você pode **equipá-lo** com arma/armadura/elmo (escala dano e vida).
 - **Companheiros como alvos reais**: os monstros miram e ferem o mercenário e as invocações (que podem **morrer**), não só o jogador — escolhem o alvo mais próximo.
