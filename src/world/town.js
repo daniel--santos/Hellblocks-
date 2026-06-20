@@ -2,7 +2,7 @@
 // Ato I é uma VILA DE PLANÍCIE estilo Minecraft (casas, poço, postes, sino, fazenda);
 // os NPCs de todas as cidades são ALDEÕES (villagers) com a cor da profissão.
 import * as THREE from 'three';
-import { box, makeVillager, makeProp, makeMonsterModel } from '../core/blocks.js';
+import { box, makeVillager, makeProp, makeMonsterModel, makeWaypoint } from '../core/blocks.js';
 import { RNG } from '../core/rng.js';
 
 function shade(hex, f) {
@@ -287,11 +287,8 @@ export function buildTown(act) {
   };
   sign(-6.2, -4, 'F', 0xaa8844); sign(6.2, -4, 'C', 0x9a4aaa); sign(0, 7.4, 'M', 0x4a88aa);
 
-  // Waypoint (pad azul brilhante)
-  const wp = new THREE.Group();
-  const pad = box(2.4, 0.3, 2.4, 0x2244aa, 0x1133aa); pad.position.y = 0.1;
-  const wpLight = new THREE.PointLight(0x3366ff, 1.5, 10); wpLight.position.y = 1;
-  wp.add(pad, wpLight); wp.position.set(-8, 0, 8); group.add(wp);
+  // Waypoint da cidade (portal de teleporte)
+  const wp = makeWaypoint(); wp.position.set(-8, 0, 8); group.add(wp);
 
   // PORTÃO de saída para a selva — na borda da vila, no fim da estrada principal (norte)
   const exitGate = makeGate(0, -16, new THREE.Color(pal.accent).getHex());
@@ -310,7 +307,7 @@ export function buildTown(act) {
     { type: 'npc', role: 'smith', name: 'Ferreiro', mesh: smith, position: V3(-5, -4) },
     { type: 'npc', role: 'healer', name: 'Curandeira', mesh: healer, position: V3(5, -4) },
     { type: 'npc', role: 'merchant', name: 'Mercador', mesh: merchant, position: V3(0, 6) },
-    { type: 'waypoint', mesh: wp, position: V3(-8, 8), wpId: `town-${act.id}`, label: `${act.townName} (Ato ${act.id})`, actIndex: act.id - 1, isTown: true },
+    { type: 'waypoint', mesh: wp, position: V3(-8, 8), wpId: `town-${act.id}`, label: `${act.townName} (Ato ${act.id})`, actIndex: act.id - 1, isTown: true, zoneType: 'town' },
   ];
 
   return {
@@ -319,6 +316,7 @@ export function buildTown(act) {
     actId: act.id,
     group,
     palette: pal,
+    safe: true,            // perímetro seguro: monstros não entram na cidade
     spawns: [],            // cidade é segura, sem monstros
     waypoint: { x: -8, z: 8 },
     exits: [{ x: 0, z: -16, to: 'wilderness', label: 'Selva' }],

@@ -329,6 +329,25 @@ export function animateHumanoid(parts, t, moving, attackPhase = 0) {
   }
 }
 
+// WAYPOINT (portal de teleporte estilo Diablo II): base de pedra + dois pilares com
+// runas, arco superior, um plano de portal azul brilhante e um orbe flutuante.
+export function makeWaypoint() {
+  const g = new THREE.Group();
+  const base = box(2.8, 0.4, 2.8, 0x44485a); base.position.y = 0.2; g.add(base);
+  const step = box(2.1, 0.3, 2.1, 0x565a6e); step.position.y = 0.5; g.add(step);
+  for (const sx of [-0.95, 0.95]) {
+    const pil = box(0.34, 2.8, 0.34, 0x6a6e88); pil.position.set(sx, 1.9, 0); g.add(pil);
+    const rune = box(0.22, 0.22, 0.38, 0x55ddff, 0x2299cc); rune.position.set(sx, 1.9, 0); g.add(rune);
+  }
+  const arch = box(2.3, 0.34, 0.4, 0x6a6e88); arch.position.y = 3.35; g.add(arch);
+  // plano de portal azul translúcido (a "porta" do waypoint)
+  const portal = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 0.12), new THREE.MeshBasicMaterial({ color: 0x55ddff, transparent: true, opacity: 0.6 }));
+  portal.position.y = 2.0; g.add(portal);
+  const orb = box(0.46, 0.46, 0.46, 0xaaf0ff, 0x66ccff); orb.position.y = 3.35; g.add(orb);
+  const light = new THREE.PointLight(0x55ccff, 1.6, 12); light.position.y = 2.2; g.add(light);
+  return g;
+}
+
 // Santuário (shrine) low-poly: pedestal + cristal flutuante brilhante.
 export function makeShrine(color) {
   const g = new THREE.Group();

@@ -195,7 +195,7 @@ class Game {
 
   _discoverWaypoint(it) {
     if (this.waypointList.some(w => w.id === it.wpId)) return;
-    this.waypointList.push({ id: it.wpId, label: it.label, actIndex: it.actIndex, zoneIndex: it.zoneIndex, isTown: it.isTown });
+    this.waypointList.push({ id: it.wpId, label: it.label, actIndex: it.actIndex, zoneIndex: it.zoneIndex, isTown: it.isTown, zoneType: it.zoneType });
     if (!it._silent) this.log(`Waypoint descoberto: ${it.label}`, 'magic');
   }
 
@@ -831,7 +831,8 @@ class Game {
   travelToWaypoint(w) {
     this.ui.closeAll();
     this.actIndex = w.actIndex;
-    if (w.isTown) this._goToTown();
+    if (w.zoneType === 'town' || w.isTown) this._goToTown();
+    else if (w.zoneType === 'boss') this._goToBoss();
     else this._goToWilderness(w.zoneIndex);
   }
 
@@ -1158,6 +1159,11 @@ class Game {
       this._updatePlayerMovement(dt);
       this.player.update(dt, this.time);
 
+      // PERÍMETRO SEGURO: na cidade (zona safe) nenhum monstro pode existir/entrar
+      if (this.zone && this.zone.safe && this.monsters.length) {
+        for (const m of this.monsters) this.engine.scene.remove(m.mesh);
+        this.monsters = [];
+      }
       for (const m of this.monsters) m.update(this, dt, this.time);
       // remove mortos
       this.monsters = this.monsters.filter(m => !m.dead);

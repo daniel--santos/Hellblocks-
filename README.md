@@ -65,6 +65,8 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Maestrias elementais** (passivas do Arcanista): Maestria do Fogo/Gelo/Raio amplificam o dano daquele elemento.
 - **Skills em ambos os botões**: skill direita (1–4) e skill esquerda (Shift+clique), como no D2.
 - **4 Atos** com **cidades FIXAS** (layout determinístico) e **selvas procedurais** (geração por seed).
+- **Mundo conectado estilo D2**: a cidade liga a uma **cadeia de mapas** — cidade → selva 0 → selva 1 → … → **arena do boss** — cada zona com um portal de volta à cidade e um portal "adiante". A **cidade é um perímetro seguro** (monstros não entram; uma regra do loop garante isso) e a **entrada da selva** vinda da cidade tem um buffer sem monstros.
+- **Waypoints em todos os mapas**: a cidade tem o **portal de waypoint** e **cada mapa** (cada selva e a arena do boss) tem o seu, descoberto ao entrar. Pela tecla **Z** dá para teleportar entre quaisquer waypoints descobertos (cidade/selva/boss).
 - **4 Bosses** de ato (Mandíbula Pútrida, Senhor das Brasas, Mãe do Vazio, Wither Ancião) + **Rei das Vacas** no Cow Level — entram em **FÚRIA** abaixo de 33% de vida (+dano/+velocidade, brilho vermelho).
 - **Level 1 → 99** com curva de XP crescente, pontos de atributo e de skill por nível.
 - **3 Dificuldades**: Normal → Pesadelo → Inferno (escala vida/dano/XP, penalidade de resistência, imunidades elementais) — desbloqueadas ao zerar o ato final, reiniciando o mundo mais cruel.
@@ -109,7 +111,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Aura de matilha**: monstros únicos/super-únicos reforçam aliados próximos (+dano e +velocidade), como os packs de elite do D2.
 - **Santuários (Shrines)** na selva: buffs temporários (+experiência, +dano, velocidade, defesa, regen de mana) ou restauro de vida/mana.
 - **Baús** clicáveis com loot.
-- **Waypoints** descobríveis com **teleporte** entre áreas visitadas.
+- **Waypoints** como **portais de teleporte** (base de pedra, pilares e portal azul brilhante) — um em cada mapa, descobertos ao entrar e ligados ao sistema de viagem (tecla **Z**).
 
 ### Cidade, economia & companheiros
 - **Vila de planície (Ato I)** no capricho do Minecraft: casas de tronco+gesso com telhado de duas águas, **poço** central, **sino** da vila, **postes-lanterna**, **barraca de mercado**, **forja** (bigorna + lava), **fazenda** cercada de trigo com **fardos de feno**, animais, caminhos de cascalho, árvores e flores. A saída para a selva é um **portão** na borda da vila (pilares de pedra, viga de madeira e cercas), no fim da estrada principal. (Atos II–IV mantêm a praça de pedregulho.)
@@ -154,7 +156,7 @@ src/
 
 ```bash
 node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo conectado (cidade segura/cadeia/waypoint em cada mapa/travel), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 

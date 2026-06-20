@@ -743,6 +743,64 @@ console.log('✓ Arena de Boss:', JSON.stringify(transitions.boss));
 if (transitions.cow.monsters < 10) throw new Error('cow level com poucas vacas');
 if (!transitions.boss.hasBoss) throw new Error('arena sem boss');
 
+// ===== Mundo D2: cidade segura + cadeia de mapas + waypoint em cada mapa =====
+const world = await page.evaluate(async () => {
+  const g = window.__game; const out = {};
+  const M = await import('http://localhost:5173/src/entities/monster.js');
+  const wpOf = (z) => (z.interactables || []).filter(it => it.type === 'waypoint').length;
+
+  // 1) Cidade: flag safe, sem monstros, com waypoint e saída para a selva
+  g.actIndex = 0; g._goToTown();
+  await new Promise(r => setTimeout(r, 80));
+  out.townSafeFlag = g.zone.safe === true;
+  out.townNoMonsters = g.monsters.length === 0;
+  out.townHasWaypoint = wpOf(g.zone) >= 1;
+  out.townExitToWild = (g.zone.exits || []).some(e => e.to === 'wilderness');
+  // guarda real: injeta um monstro na cidade -> o loop (zona safe) o remove
+  g.running = true; g.player.dead = false; g.input.setEnabled(true);
+  const intruder = M.makeMonster('zombie', 5, 'normal', g.difficultyObj, g.rng);
+  intruder.setPosition(0, 0); g.monsters.push(intruder); g.scene.add(intruder.mesh);
+  await new Promise(r => setTimeout(r, 200));
+  out.townRemovesIntruder = g.monsters.length === 0;
+
+  // 2) Cada zona da selva: waypoint + conexão (cidade + adiante) + perímetro de entrada seguro
+  const zwp = [], zconn = [], zsafe = [];
+  for (let z = 0; z < 3; z++) {
+    g._goToWilderness(z);
+    await new Promise(r => setTimeout(r, 60));
+    zwp.push(wpOf(g.zone));
+    const ex = g.zone.exits || [];
+    zconn.push(ex.some(e => e.to === 'town') && ex.some(e => e.to === 'wilderness' || e.to === 'boss'));
+    const s = g.zone.playerStart;
+    const near = g.monsters.filter(m => Math.hypot(m.position.x - s.x, m.position.z - s.z) < 7).length;
+    zsafe.push(near === 0);
+  }
+  out.everyWildHasWaypoint = zwp.every(n => n >= 1);
+  out.everyWildConnected = zconn.every(Boolean);
+  out.wildEntrySafe = zsafe.every(Boolean);
+  out.lastWildToBoss = (g.zone.exits || []).some(e => e.to === 'boss'); // zona 2 é a última -> boss
+
+  // 3) Arena do boss: waypoint próprio + volta à cidade
+  g._goToBoss();
+  await new Promise(r => setTimeout(r, 80));
+  out.bossHasWaypoint = wpOf(g.zone) >= 1;
+  out.bossExitToTown = (g.zone.exits || []).some(e => e.to === 'town');
+
+  // 4) Waypoints descobertos (cidade/selva/boss) e travel roteia por tipo
+  const ids = g.waypointList.map(w => w.id);
+  out.discoveredAllTypes = ids.some(i => i.startsWith('town-')) && ids.some(i => i.startsWith('wild-')) && ids.some(i => i.startsWith('boss-'));
+  const wWild = g.waypointList.find(w => w.zoneType === 'wilderness');
+  const wBoss = g.waypointList.find(w => w.zoneType === 'boss');
+  const wTown = g.waypointList.find(w => w.zoneType === 'town' || w.isTown);
+  g.travelToWaypoint(wWild); await new Promise(r => setTimeout(r, 60)); out.travelWild = g.zone.type === 'wilderness';
+  g.travelToWaypoint(wBoss); await new Promise(r => setTimeout(r, 60)); out.travelBoss = g.zone.type === 'boss';
+  g.travelToWaypoint(wTown); await new Promise(r => setTimeout(r, 120)); out.travelTownSafe = g.zone.type === 'town' && g.monsters.length === 0;
+
+  return out;
+});
+console.log('✓ Mundo D2 (cidade/cadeia/waypoints):', JSON.stringify(world));
+for (const [k, v] of Object.entries(world)) if (v === false) throw new Error('mundo falhou em: ' + k);
+
 // ===== 3 slots de save (isolados) =====
 const slots = await page.evaluate(async () => {
   const g = window.__game; const out = {};

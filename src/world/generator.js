@@ -1,7 +1,7 @@
 // Geração PROCEDURAL das zonas selvagens, arena de boss e Cow Level.
 // Cidades são fixas (town.js); aqui tudo é gerado por seed (determinístico).
 import * as THREE from 'three';
-import { box, makeProp, makeShrine, makeChest } from '../core/blocks.js';
+import { box, makeProp, makeShrine, makeChest, makeWaypoint } from '../core/blocks.js';
 import { RNG, hashSeed } from '../core/rng.js';
 import { effectiveAreaLevel } from '../systems/difficulty.js';
 import { SHRINE_TYPES } from '../data/shrines.js';
@@ -80,7 +80,8 @@ function generatePacks(rng, monsterPool, radius, areaLevel, packCount) {
   for (let i = 0; i < packCount; i++) {
     const cx = rng.range(-radius + 4, radius - 4);
     const cz = rng.range(-radius + 4, radius - 4);
-    if (Math.hypot(cx, cz) < 8) continue; // não nasce em cima do jogador
+    if (Math.hypot(cx, cz) < 8) continue; // não nasce no centro
+    if (Math.hypot(cx, cz - (radius - 6)) < 11) continue; // perímetro seguro junto à conexão com a cidade
     const packSize = rng.int(3, 6);
     // chance de pack de elite (champion/unique) — como D2
     const eliteRoll = rng.next();
@@ -145,15 +146,12 @@ export function buildWilderness(act, zoneIndex, difficulty, seedStr) {
     superUnique = { name: def.name, typeId: def.typeId, x: sx, z: sz, level: areaLevel, minions: rng.int(3, 6) };
   }
 
-  // waypoint ocasional (interativo: descobre e permite teleporte)
-  const waypoint = rng.chance(0.6) ? { x: rng.range(-8, 8), z: rng.range(-8, 8) } : null;
-  if (waypoint) {
-    const wp = box(2.2, 0.3, 2.2, 0x2244aa, 0x1133aa);
-    wp.position.set(waypoint.x, 0.1, waypoint.z);
-    const l = new THREE.PointLight(0x3366ff, 1.2, 8); l.position.set(waypoint.x, 1, waypoint.z);
-    group.add(wp, l);
-    interactables.push({ type: 'waypoint', mesh: wp, position: new THREE.Vector3(waypoint.x, 0, waypoint.z), wpId: `wild-${act.id}-${zoneIndex}`, label: `${act.zones[zoneIndex]} (Ato ${act.id})`, actIndex: act.id - 1, zoneIndex });
-  }
+  // waypoint da zona — SEMPRE presente (cada mapa tem o seu, ligado ao sistema)
+  const waypoint = { x: rng.range(-7, 7), z: rng.range(-7, 7) };
+  const wp = makeWaypoint();
+  wp.position.set(waypoint.x, 0, waypoint.z);
+  group.add(wp);
+  interactables.push({ type: 'waypoint', mesh: wp, position: new THREE.Vector3(waypoint.x, 0, waypoint.z), wpId: `wild-${act.id}-${zoneIndex}`, label: `${act.zones[zoneIndex]} (Ato ${act.id})`, actIndex: act.id - 1, zoneIndex, zoneType: 'wilderness' });
 
   return {
     type: 'wilderness', name: act.zones[zoneIndex] || 'Selva', actId: act.id, zoneIndex,
@@ -188,8 +186,13 @@ export function buildBossArena(act, difficulty, seedStr) {
     spawns.push({ x: Math.cos(a) * 6, z: Math.sin(a) * 6 - 6, typeId: rng.pick(act.monsterPool), rankId: 'normal', level: areaLevel });
   }
 
+  // waypoint da arena do boss — perto da entrada (cada mapa tem o seu)
+  const wpPos = new THREE.Vector3(0, 0, radius - 8);
+  const wpMesh = makeWaypoint(); wpMesh.position.copy(wpPos); group.add(wpMesh);
+  const interactables = [{ type: 'waypoint', mesh: wpMesh, position: wpPos, wpId: `boss-${act.id}`, label: `${act.townName} — Covil`, actIndex: act.id - 1, zoneType: 'boss' }];
+
   return {
-    type: 'boss', name: `${act.townName} — Covil`, actId: act.id, group, palette: pal, areaLevel, spawns,
+    type: 'boss', name: `${act.townName} — Covil`, actId: act.id, group, palette: pal, areaLevel, spawns, interactables,
     boss: { x: 0, z: -10, bossId: act.boss, level: areaLevel },
     exits: [{ x: 0, z: radius - 3, to: 'town', label: 'Cidade', color: 0x66aaff }],
     playerStart: { x: 0, z: radius - 6 },
