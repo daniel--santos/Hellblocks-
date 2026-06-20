@@ -187,6 +187,7 @@ export function spawnProjectile(game, opts) {
     damage: opts.damage, element: opts.element, aoe: opts.aoe || 0,
     slow: opts.slow || 0, owner: opts.owner, seek: opts.seek || false,
     spiral: opts.spiral || false, spiralT: 0, hit: new Set(), arrow: opts.arrow || false,
+    curse: opts.curse || false, manaBurn: opts.manaBurn || false, // únicos Malditos/Queima-Mana à distância
   });
 }
 
@@ -234,7 +235,8 @@ export function updateProjectiles(game, dt) {
       // projétil de monstro acerta o jogador OU um companheiro
       if (!p.hitPlayer) {
         if (segDistXZ(game.player.position, prev, p.pos) < 1.0) {
-          applyDamageToPlayer(game, p.damage, p.element, { slow: p.slow });
+          // projétil NÃO é atacante p/ Espinhos (Espinhos é corpo-a-corpo, como no D2); maldição/queima vão por opts
+          applyDamageToPlayer(game, p.damage, p.element, { slow: p.slow, curse: p.curse, manaBurn: p.manaBurn });
           p.hitPlayer = true; toRemove.push(p);
         } else {
           for (const c of companionsOf(game)) {
@@ -427,6 +429,8 @@ export function applyDamageToPlayer(game, amount, element, opts = {}, attacker =
     game.floatText(p.position, 'bloqueio', 'desc'); return;
   }
   let dmg = amount;
+  // Maldição (Amplificar Dano): enquanto amaldiçoado, recebe mais dano de QUALQUER fonte
+  if (p.curseUntil && p.curseUntil > game.time) dmg *= (1 + (p.curseAmp || 0.25));
   // redução física por defesa (aura Resistência + defesa de itens)
   if (element === 'physical') {
     const dr = Math.min(0.85, (p.bonuses?.auraDefense || 0) + (p.derived?.physReduction || 0) + (p._tempDefense || 0));
@@ -440,6 +444,18 @@ export function applyDamageToPlayer(game, amount, element, opts = {}, attacker =
   p.life -= dmg;
   if (Math.random() < 0.12 && p.loseDurability) p.loseDurability('armor'); // desgaste da armadura
   game.floatText(p.position, '-' + dmg, 'dmg');
+  // Queima de Mana: monstro único drena mana ao acertar (corpo-a-corpo via attacker, à distância via opts)
+  if (((attacker && attacker.manaBurn) || opts.manaBurn) && p.mana > 0) {
+    const burn = Math.min(p.mana, dmg);
+    p.mana -= burn;
+    game.floatText(p.position, '-' + Math.round(burn) + ' mana', 'magic');
+  }
+  // Maldito: aplica/renova Amplificar Dano (mostra o texto só quando ativa de novo)
+  if ((attacker && attacker.curses) || opts.curse) {
+    const wasCursed = p.curseUntil && p.curseUntil > game.time;
+    p.curseUntil = game.time + 4; p.curseAmp = 0.25;
+    if (!wasCursed) game.floatText(p.position, 'Maldição!', 'desc');
+  }
   // lentidão/congelamento: anulada por "Não Pode Ser Congelado"; reduzida por Recuperação Rápida (FHR)
   if (opts.slow && !p.bonuses?.cannotFreeze) {
     p.slowUntil = game.time + 1.0 * (1 - (p.bonuses?.fhr || 0));

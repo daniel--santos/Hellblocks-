@@ -108,7 +108,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Tooltip do item ao passar o mouse no nome** — no inventário, na **loja (comprar/vender)** e no **baú** (dos dois lados), o balão com os atributos do item aparece ao passar o cursor sobre o nome.
 
 ### Monstros & mundo
-- **Ranks** normal/campeão/único/boss, com **afixos de monstro** (Veloz, Encantado-Fogo, Pele de Pedra, etc.), **imunidades elementais** (dificuldades altas) e resistências.
+- **Ranks** normal/campeão/único/boss, com **afixos de monstro que têm EFEITOS** (estilo D2): **Encantado-Fogo/Raio** explodem numa **nova ao morrer**, **Maldito** lança **Amplificar Dano** (você recebe +25% de dano por 4s), **Queima de Mana** drena sua mana ao acertar, **Resistente à Magia** (50% a fogo/gelo/raio) — além de Veloz, Forte, Frenético, Golpe Espectral, Pele de Pedra; **imunidades elementais** (dificuldades altas) e resistências.
 - **Monstros Super Únicos** nomeados com matilha (estilo Bishibosh/Rakanishu) — ex.: "Pedregulho, o Esmagador", "Aracne Rainha".
 - **Aura de matilha**: monstros únicos/super-únicos reforçam aliados próximos (+dano e +velocidade), como os packs de elite do D2.
 - **Santuários (Shrines)** na selva: buffs temporários (+experiência, +dano, velocidade, defesa, regen de mana) ou restauro de vida/mana.

@@ -9,16 +9,23 @@ export const MONSTER_RANKS = {
   boss: { id: 'boss', lifeMul: 11, dmgMul: 2.8, xpMul: 40, scale: 2.6, color: 0xaa00ff, dropMul: 10 },
 };
 
-// Afixos de monstros raros/únicos (como D2)
+// Afixos de monstros raros/únicos (como D2). Flags lidas em runtime:
+//   deathNova -> Game._onMonsterDeath dispara uma nova ao morrer (Encantado-Fogo/Raio)
+//   curses    -> applyDamageToPlayer aplica Amplificar Dano (recebe +25% dano por 4s)
+//   manaBurn  -> applyDamageToPlayer drena mana ao acertar
 export const MONSTER_AFFIXES = [
   { id: 'fast', name: 'Veloz', apply: m => { m.moveSpeed *= 1.5; m.attackSpeed *= 1.4; } },
-  { id: 'fire_enchant', name: 'Encantado-Fogo', apply: m => { m.element = 'fire'; m.damage *= 1.3; } },
+  { id: 'fire_enchant', name: 'Encantado-Fogo', apply: m => { m.element = 'fire'; m.damage *= 1.3; m.deathNova = 'fire'; } },
   { id: 'cold_enchant', name: 'Encantado-Gelo', apply: m => { m.element = 'cold'; m.applySlow = true; } },
-  { id: 'lightning_enchant', name: 'Encantado-Raio', apply: m => { m.element = 'lightning'; m.damage *= 1.25; } },
+  { id: 'lightning_enchant', name: 'Encantado-Raio', apply: m => { m.element = 'lightning'; m.damage *= 1.25; m.deathNova = 'lightning'; } },
   { id: 'spectral_hit', name: 'Golpe Espectral', apply: m => { m.damage *= 1.4; } },
   { id: 'extra_strong', name: 'Forte', apply: m => { m.damage *= 1.6; } },
   { id: 'extra_fast', name: 'Frenético', apply: m => { m.moveSpeed *= 1.6; } },
   { id: 'stone_skin', name: 'Pele de Pedra', apply: m => { m.maxLife *= 2; m.life = m.maxLife; } },
+  // Novos modificadores icônicos do D2:
+  { id: 'cursed', name: 'Maldito', apply: m => { m.curses = true; } },
+  { id: 'mana_burn', name: 'Queima-Mana', apply: m => { m.manaBurn = true; } },
+  { id: 'magic_resistant', name: 'Resistente à Magia', apply: m => { for (const el of ['fire', 'cold', 'lightning', 'poison']) m.res[el] = Math.max(m.res[el] || 0, 0.5); } },
 ];
 
 // Tipos base de monstro. base = stats em nível 1; escalam por área.

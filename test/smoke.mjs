@@ -320,6 +320,51 @@ const d2d = await page.evaluate(async () => {
 console.log('✓ Summon/Quest/XPloss/Freeze:', JSON.stringify(d2d));
 for (const [k, v] of Object.entries(d2d)) if (v === false) throw new Error('falhou em: ' + k);
 
+// ===== Modificadores de monstro único: nova ao morrer · Maldição · Queima de Mana (ideia #2) =====
+const d2mods = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const C = await import('http://localhost:5173/src/systems/combat.js');
+  const M = await import('http://localhost:5173/src/entities/monster.js');
+  g.running = true; p.dead = false; p.life = p.maxLife; p.mana = p.maxMana; p.curseUntil = 0; p.bonuses.lifePerKill = 0;
+
+  // 1) Encantado-Fogo: o corpo explode em nova ao morrer (hook + dano de área)
+  const fe = M.makeMonster('zombie', 5, 'unique', g.difficultyObj, g.rng);
+  fe.deathNova = 'fire'; fe.damage = 60; fe.setPosition(p.position.x, p.position.z); g.monsters.push(fe);
+  const fxB = (g.fx || []).length;
+  const rngState = g.rng.state, groundLen = g.groundItems.length; // p/ desfazer efeitos colaterais
+  fe.dead = true; g.onMonsterDeath(fe, p);              // morte real: dispara a nova + processa
+  g.rng.state = rngState;                                // restaura o RNG (onMonsterDeath rola drops e mexe no stream)
+  while (g.groundItems.length > groundLen) { const d = g.groundItems.pop(); if (d && d.mesh) g.scene.remove(d.mesh); }
+  g.monsters = g.monsters.filter(x => x !== fe);        // limpa o monstro de teste (não polui blocos seguintes)
+  out.deathNovaHook = (g.fx || []).length > fxB;        // a nova foi disparada pela morte
+  p.dead = false; p.life = 100000;
+  const lb = p.life; C.novaBurst(g, p.position.clone(), 3.2, 90, 'fire', 0, 'monster');
+  out.deathNovaDamages = p.life < lb;                    // a nova fere quem está no raio
+
+  // isola dos efeitos de itens (espinhos/esquiva/bloqueio) p/ medir os combates — SALVA e restaura no fim
+  const _sv = { thorns: p.bonuses.thorns, dodge: p.bonuses.dodgeChance, buffs: p.buffs, td: p._tempDefense };
+  p.bonuses.thorns = 0; p.bonuses.dodgeChance = 0; p.buffs = {}; p._tempDefense = 0; p.dead = false;
+
+  // 2) Maldito: Amplificar Dano — enquanto amaldiçoado recebe mais dano
+  p.curseUntil = 0; p.life = 100000; const b1 = p.life; C.applyDamageToPlayer(g, 200, 'physical'); const dN = b1 - p.life;
+  p.curseUntil = g.time + 5; p.curseAmp = 0.25; p.life = 100000; const b2 = p.life; C.applyDamageToPlayer(g, 200, 'physical'); const dC = b2 - p.life;
+  out.curseAmplifies = dC > dN;
+  p.curseUntil = 0; p.life = 100000; C.applyDamageToPlayer(g, 50, 'physical', {}, { curses: true, dead: false });
+  out.curseApplied = p.curseUntil > g.time;              // um monstro Maldito aplica a maldição ao acertar
+
+  // 3) Queima de Mana: monstro único drena mana ao acertar
+  p.mana = p.maxMana; const mB = p.mana; p.life = 100000;
+  C.applyDamageToPlayer(g, 30, 'physical', {}, { manaBurn: true, dead: false });
+  out.manaBurn = p.mana < mB;
+
+  // restaura tudo que foi mexido (não polui blocos seguintes)
+  p.bonuses.thorns = _sv.thorns; p.bonuses.dodgeChance = _sv.dodge; p.buffs = _sv.buffs; p._tempDefense = _sv.td;
+  p.dead = false; p.life = p.maxLife; p.mana = p.maxMana; p.curseUntil = 0; p.curseAmp = 0; g.running = true;
+  return out;
+});
+console.log('✓ Modificadores de monstro:', JSON.stringify(d2mods));
+for (const [k, v] of Object.entries(d2mods)) if (v === false) throw new Error('modificadores falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};
@@ -911,7 +956,9 @@ const world = await page.evaluate(async () => {
   const wBoss = g.waypointList.find(w => w.zoneType === 'boss');
   const wTown = g.waypointList.find(w => w.zoneType === 'town' || w.isTown);
   g.travelToWaypoint(wOver); await new Promise(r => setTimeout(r, 100));
-  out.travelOverworld = g.zone.type === 'overworld' && Math.abs(g.player.position.x - wOver.wpX) < 0.6;
+  // tolerância 4 (não 0.6): a colisão pode empurrar o jogador para fora de um prop sólido perto do
+  // waypoint (posição aleatória por seed); 4 « 22 (meia-região), então ainda confirma o waypoint certo.
+  out.travelOverworld = g.zone.type === 'overworld' && Math.abs(g.player.position.x - wOver.wpX) < 4;
   g.travelToWaypoint(wBoss); await new Promise(r => setTimeout(r, 60)); out.travelBoss = g.zone.type === 'boss';
   g.travelToWaypoint(wTown); await new Promise(r => setTimeout(r, 120)); out.travelTownSafe = g.zone.type === 'town' && g.monsters.length === 0;
 

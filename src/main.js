@@ -406,6 +406,10 @@ class Game {
     m._counted = true;
     this.killCount = (this.killCount || 0) + 1;
     this._checkQuest('kills');
+    // Encantado-Fogo/Raio: o corpo explode numa nova ao morrer (estilo D2). Atinge jogador/companheiros.
+    if (m.deathNova) {
+      Combat.novaBurst(this, m.position.clone(), 3.2, Math.round((m.damage || 10) * 1.5), m.deathNova, 0, 'monster');
+    }
     // sustain: vida/mana por morte (afixos D2)
     const lpk = this.player.bonuses.lifePerKill || 0, mpk = this.player.bonuses.manaPerKill || 0;
     if (lpk) this.player.life = Math.min(this.player.maxLife, this.player.life + lpk);

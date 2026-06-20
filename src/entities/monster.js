@@ -195,7 +195,7 @@ export class Monster {
     const tgt = this._tgt || { position: game.player.position };
     const origin = this.position.clone().setY(1.0);
     const dir = new THREE.Vector3().subVectors(tgt.position, origin).setY(0).normalize();
-    spawnProjectile(game, { origin, dir, speed: 14, range: this.range + 4, damage: this._dmgOut(game), element: this.element, owner: 'monster', slow: this.applySlow ? 0.4 : 0, arrow: this.usesBow });
+    spawnProjectile(game, { origin, dir, speed: 14, range: this.range + 4, damage: this._dmgOut(game), element: this.element, owner: 'monster', slow: this.applySlow ? 0.4 : 0, arrow: this.usesBow, curse: this.curses, manaBurn: this.manaBurn });
   }
 
   explode(game) {

@@ -208,6 +208,22 @@ ok('quest de boss substitui {boss}', !qFind(a1q, 'boss').text.includes('{boss}')
 ok('afixo Recuperação Rápida (FHR) existe', AFFIXES.suffix.some(a => a.stat === 'fhr'));
 ok('afixo Não Pode Ser Congelado existe', AFFIXES.suffix.some(a => a.stat === 'cannotFreeze'));
 
+// ---- Modificadores de monstro único com efeitos (ideia #2) ----
+import { MONSTER_AFFIXES } from '../src/data/monsters.js';
+const affix = (id) => MONSTER_AFFIXES.find(a => a.id === id);
+const mkMon = () => ({ res: {}, damage: 10, moveSpeed: 2, attackSpeed: 1, maxLife: 100, life: 100, element: 'physical' });
+let fm = mkMon(); affix('fire_enchant').apply(fm);
+ok('Encantado-Fogo explode em nova de fogo ao morrer', fm.deathNova === 'fire' && fm.element === 'fire');
+let lm = mkMon(); affix('lightning_enchant').apply(lm);
+ok('Encantado-Raio solta nova de raio ao morrer', lm.deathNova === 'lightning');
+let cm = mkMon(); affix('cursed').apply(cm);
+ok('Maldito marca curses (Amplificar Dano)', cm.curses === true);
+let bm = mkMon(); affix('mana_burn').apply(bm);
+ok('Queima-Mana marca manaBurn', bm.manaBurn === true);
+let rm = mkMon(); affix('magic_resistant').apply(rm);
+ok('Resistente à Magia dá 50% resist a fogo/gelo/raio', rm.res.fire >= 0.5 && rm.res.cold >= 0.5 && rm.res.lightning >= 0.5);
+ok('novos modificadores existem no pool', ['cursed', 'mana_burn', 'magic_resistant'].every(id => MONSTER_AFFIXES.some(a => a.id === id)));
+
 // ---- Conteúdo novo: runewords / sets / uniques ----
 import { RUNEWORDS } from '../src/data/gems.js';
 import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';
