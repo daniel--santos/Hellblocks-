@@ -158,8 +158,8 @@ src/
 ## Testes
 
 ```bash
-node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/logic.test.mjs   # 141 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 
