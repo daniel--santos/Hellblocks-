@@ -215,6 +215,8 @@ html, body {
 .inv-item.rare { box-shadow: inset 0 0 0 2px #ffff64; }
 .inv-item.set { box-shadow: inset 0 0 0 2px #00ff00; }
 .inv-item.unique { box-shadow: inset 0 0 0 2px #c8aa6e; }
+/* charm: borda vermelha (sobrepõe a cor de raridade) para identificar fácil no inventário */
+.inv-item.charm { box-shadow: inset 0 0 0 2px #ff2a2a, 0 0 5px rgba(255,42,42,0.55); }
 .equip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .equip-slot { width: 44px; height: 44px; border: 1px solid #3a3226; background: rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; color: #6a5; }
 .equip-slot .eq-icon { font-size: 20px; }

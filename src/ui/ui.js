@@ -494,7 +494,7 @@ export class UI {
         const unid = it.identified === false ? ' style="filter:grayscale(0.6);outline:1px dashed #888"' : '';
         const charm = it.slot === 'charm' ? ' title="Charm (bônus passivo)"' : '';
         const sock = it.sockets ? `<span style="position:absolute;bottom:0;right:1px;font-size:9px;color:#9df">◆${it.socketed?.length || 0}/${it.sockets}</span>` : '';
-        html += `<div class="inv-cell" data-cell="${i}"><div class="inv-item ${r.cssClass}" draggable="true" data-idx="${i}"${unid}${charm}>${it.icon}${sock}</div></div>`;
+        html += `<div class="inv-cell" data-cell="${i}"><div class="inv-item ${r.cssClass}${it.slot === 'charm' ? ' charm' : ''}" draggable="true" data-idx="${i}"${unid}${charm}>${it.icon}${sock}</div></div>`;
       } else html += `<div class="inv-cell" data-cell="${i}"></div>`;
     }
     html += `</div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Clique: equipar / identificar (se não-ID). Arraste para reordenar, soltar num slot p/ equipar, ou na zona acima p/ jogar no chão. Charms dão bônus no inventário.</p>`;
@@ -757,11 +757,13 @@ export class UI {
     html += p.inventory.map(it => itemBtn(it, 'cube-in')).join('') || '<p style="color:#8a7a5a;font-size:12px">vazio</p>';
     html += `</div></div></div>`;
     html += `<button class="big-button" id="cube-go" style="margin:10px 0">⚗️ TRANSMUTAR</button>`;
+    html += `<div class="stat-row" style="margin:4px 0"><span>🧬 Condensar charms <span style="font-size:11px;color:#8a7a5a">(cubo só com charms → 1 só, somando os mods)</span></span><button class="alloc-btn" id="cube-condense" style="${game.condenseCharms ? 'color:#6f6;border-color:#3a3' : 'color:#c66;border-color:#633'}">${game.condenseCharms ? 'LIGADO' : 'DESLIGADO'}</button></div>`;
     html += `<div style="font-size:11px;color:#8a7a5a">Receitas: ${CUBE_RECIPES.join(' · ')}</div>`;
     this.modal.innerHTML = html;
     this.modal.querySelectorAll('.cube-in').forEach(n => n.onclick = () => { game.moveToCube(p.inventory.find(x => x.id === n.dataset.id)); this.renderCube(game); });
     this.modal.querySelectorAll('.cube-out').forEach(n => n.onclick = () => { game.moveFromCube(game.cube.find(x => x.id === n.dataset.id)); this.renderCube(game); });
     this.modal.querySelector('#cube-go').onclick = () => { game.cubeTransmute(); this.renderCube(game); };
+    this.modal.querySelector('#cube-condense').onclick = () => { game.toggleCondenseCharms(); this.renderCube(game); };
   }
 
   // ----- Stash (baú) -----

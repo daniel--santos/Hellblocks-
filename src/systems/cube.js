@@ -8,6 +8,22 @@ function makeSocketableItem(defId) {
   return { id: nextItemId(), name: def.name, icon: def.icon, rarity: 'normal', identified: true, kind: def.kind, socketableId: def.id, slot: def.kind, reqLevel: def.reqLevel || 1, mods: {} };
 }
 
+// Funde vários charms num único: soma os atributos iguais e adiciona os demais.
+function fuseCharms(charms) {
+  const mods = {};
+  let reqLevel = 1;
+  for (const c of charms) {
+    for (const [k, v] of Object.entries(c.mods || {})) mods[k] = (mods[k] || 0) + v;
+    reqLevel = Math.max(reqLevel, c.reqLevel || 1);
+  }
+  for (const k in mods) mods[k] = Math.round(mods[k] * 100) / 100; // evita lixo de ponto flutuante
+  return {
+    id: nextItemId(), name: 'Talismã Condensado', rarity: 'rare', slot: 'charm', kind: 'charm',
+    baseId: 'charm_grand', icon: '🟥', reqLevel, ilvl: reqLevel, mods, affixes: [], identified: true,
+    charmSize: 3, condensed: true,
+  };
+}
+
 const RUNE_BY_TIER = Object.values(RUNES).sort((a, b) => a.tier - b.tier);
 function nextRuneId(runeId) {
   const cur = RUNES[runeId];
@@ -29,13 +45,20 @@ export const CUBE_RECIPES = [
   '1 item raro + 1 gema → re-rola o item raro',
   '1 item mágico + 1 gema → re-rola o item mágico',
   'runa Hel + 1 item encravado → esvazia os soquetes',
+  '(opcional) só charms → funde todos num único Talismã (soma os mods)',
 ];
 
 // Tenta transmutar o conteúdo do cubo. Retorna { ok, message, result } (result = novo conteúdo).
-export function transmute(items, rng) {
+// opts.condenseCharms liga a receita de fundir charms (charms-only → 1 só).
+export function transmute(items, rng, opts = {}) {
   const gems = items.filter(i => i.kind === 'gem');
   const runes = items.filter(i => i.kind === 'rune');
   const gear = items.filter(i => i.slot && !['gem', 'rune', 'charm', 'jewel'].includes(i.slot));
+
+  // SÓ charms (2+) -> funde todos num único Talismã, somando os mods (se a feature estiver ligada)
+  if (opts.condenseCharms && items.length >= 2 && items.every(i => i.slot === 'charm')) {
+    return { ok: true, message: `${items.length} charms condensados num só Talismã!`, result: [fuseCharms(items)] };
+  }
 
   // 3 gemas iguais -> próxima qualidade
   if (items.length === 3 && gems.length === 3) {

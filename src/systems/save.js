@@ -40,6 +40,7 @@ export function saveGame(game, slot = (game.saveSlot ?? 0)) {
     inventory: p.inventory, equipment: p.equipment,
     beltSkills: p.beltSkills, rightSkill: p.rightSkill, leftSkill: p.leftSkill, activeAura: p.activeAura,
     difficulty: game.difficulty, hardcore: !!game.hardcore, titleRank: game.titleRank || 0, actIndex: game.actIndex, zoneIndex: game.zoneIndex,
+    condenseCharms: game.condenseCharms !== false,
     stashTabs: game.stashTabs, waypointList: game.waypointList,
     questLog: game.questLog, killCount: game.killCount, questAct: game._questAct,
     merc: (game.mercenary && !game.mercenary.dead) ? { typeId: game.mercenary.type.id, level: game.mercenary.level } : null,

@@ -57,6 +57,7 @@ class Game {
     this._questAct = -1;
     this.returnPoint = null;     // ponto de retorno do Town Portal
     this.cube = [];              // conteúdo do Cubo Horadric
+    this.condenseCharms = true;  // receita: cubo só com charms funde todos num só (ligável/desligável)
     this.stashTabs = [[]];       // baú com ABAS infinitas (cada aba = array de itens)
     this.stashTab = 0;           // aba ativa do baú
     this.saveSlot = 0;           // slot de save ativo (0..2)
@@ -128,6 +129,7 @@ class Game {
     this.titleRank = data.titleRank || 0;
     this.actIndex = data.actIndex || 0;
     this.zoneIndex = data.zoneIndex || 0;
+    this.condenseCharms = data.condenseCharms !== false; // padrão LIGADO (saves antigos também)
     // baú: aceita o novo formato (abas) e o antigo (array plano) para compatibilidade
     this.stashTabs = Array.isArray(data.stashTabs) && data.stashTabs.length
       ? data.stashTabs
@@ -1048,10 +1050,16 @@ class Game {
     if (i >= 0) { this.cube.splice(i, 1); this.player.inventory.push(item); this.player.recompute(); }
   }
   cubeTransmute() {
-    const res = transmute(this.cube, this.rng);
+    const res = transmute(this.cube, this.rng, { condenseCharms: this.condenseCharms });
     this.log(res.message, res.ok ? 'set' : 'dmg');
     if (res.ok) this.cube = res.result;
     return res.ok;
+  }
+  toggleCondenseCharms() {
+    this.condenseCharms = !this.condenseCharms;
+    this.log(`Condensar charms no cubo: ${this.condenseCharms ? 'LIGADO' : 'DESLIGADO'}`, 'magic');
+    this.save();
+    return this.condenseCharms;
   }
 
   // ---------- Stash (baú com abas infinitas) ----------

@@ -696,14 +696,16 @@ const qol = await page.evaluate(async () => {
   p.position.set(gi.position.x, 0, gi.position.z); g._pickupGroundItems(); // volta → recolhe
   out.rePickup = !g.groundItems.includes(gi) && p.inventory.includes(dropIt);
 
-  // 6) DOM: botão organizar, zona de soltar, itens arrastáveis, abas do baú
+  // 6) DOM: botão organizar, zona de soltar, itens arrastáveis, abas do baú, charm c/ borda vermelha
   p.inventory.push({ id: 'dragd', name: 'Drag', slot: 'helm', rarity: 'normal', icon: '🪖', identified: true, mods: {} });
+  p.inventory.push({ id: 'charmd', name: 'Talismã', slot: 'charm', kind: 'charm', rarity: 'magic', icon: '🔸', identified: true, mods: { lifeFlat: 10 } });
   g.ui.renderInventory(g);
   const invPanel = document.getElementById('inventory-panel');
   out.invSortBtn = !!invPanel.querySelector('.inv-sort');
   out.invDropZone = !!invPanel.querySelector('.inv-dropzone');
   const di = invPanel.querySelector('.inv-item');
   out.invDraggable = !!di && di.getAttribute('draggable') === 'true';
+  out.charmRedClass = !!invPanel.querySelector('.inv-item.charm'); // charm recebe classe p/ borda vermelha
   g.ui.openStash(g);
   out.stashDom = !!g.ui.modal.querySelector('.stash-tab') && !!g.ui.modal.querySelector('.stash-addtab') && !!g.ui.modal.querySelector('.stash-sort');
   g.ui.modal.classList.add('hidden');
@@ -773,6 +775,38 @@ const coll = await page.evaluate(async () => {
 });
 console.log('✓ Colisão com estruturas:', JSON.stringify(coll));
 for (const [k, v] of Object.entries(coll)) if (v === false) throw new Error('colisão falhou em: ' + k);
+
+// ===== Cubo: condensar charms num só (toggle persistido por save) =====
+const cubeChk = await page.evaluate(async () => {
+  const g = window.__game; const out = {};
+  const S = await import('http://localhost:5173/src/systems/save.js');
+  const mk = (id, mods, rl) => ({ id, name: 'Talismã ' + id, slot: 'charm', kind: 'charm', rarity: 'magic', icon: '🔸', identified: true, reqLevel: rl, mods, charmSize: 1 });
+  // LIGADO: 3 charms -> 1 só com a soma dos mods
+  g.condenseCharms = true;
+  g.cube = [mk('a', { lifeFlat: 10, str: 2 }, 5), mk('b', { lifeFlat: 5, resAll: 3 }, 12), mk('c', { str: 4 }, 8)];
+  g.cubeTransmute();
+  const c = g.cube[0];
+  out.fused = g.cube.length === 1 && c.slot === 'charm' && c.mods.lifeFlat === 15 && c.mods.str === 6 && c.mods.resAll === 3;
+  // DESLIGADO: não funde (segue 2 itens)
+  g.condenseCharms = false;
+  g.cube = [mk('d', { dex: 3 }, 4), mk('e', { vit: 2 }, 6)];
+  g.cubeTransmute();
+  out.notFusedOff = g.cube.length === 2;
+  // toggle + persistência no save
+  const r = g.toggleCondenseCharms(); // false -> true, salva
+  out.toggled = r === true && g.condenseCharms === true;
+  out.savedFlag = S.loadSaveData(g.saveSlot).condenseCharms === true;
+  // UI: botão de liga/desliga no painel do cubo
+  g.cube = []; g.ui.openCube(g);
+  const btn = g.ui.modal.querySelector('#cube-condense');
+  out.cubeToggleBtn = !!btn && btn.textContent.includes('LIGADO');
+  btn.click(); // alterna -> DESLIGADO
+  out.uiToggle = g.condenseCharms === false && g.ui.modal.querySelector('#cube-condense').textContent.includes('DESLIGADO');
+  g.condenseCharms = true; g.save(); g.ui.modal.classList.add('hidden');
+  return out;
+});
+console.log('✓ Cubo condensar charms:', JSON.stringify(cubeChk));
+for (const [k, v] of Object.entries(cubeChk)) if (v === false) throw new Error('cubo falhou em: ' + k);
 
 // Super Único: percorre zonas até achar um (45% por zona)
 const su = await page.evaluate(async () => {

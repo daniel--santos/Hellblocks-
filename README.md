@@ -88,7 +88,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **12 Uniques e 3 Sets** fixos (ex.: O Bloco Ancestral, Coroa do Creeper, Presa da Aracne, Anel do Definhamento, **Punho do Golem**, **Cinto do Vazio**, **Carapaça do Wither**, **Cetro do Caos**; conjuntos Traje do Minerador, Pele do Lobo e o **Arsenal do Esqueleto** de 3 peças, com bônus por nº de peças).
 - **Charm único Anihilus** (+1 todas skills, +atributos, +resist.) — recompensa garantida ao matar o Rei das Vacas.
 - **Identificação**: raros/sets/uniques caem *não-identificados* (afixos ocultos) — use **Pergaminhos de Identificação** (clique no item). Mágicos já vêm identificados, como no D2.
-- **Charms (Talismãs)** pequeno/grande/imenso — dão bônus passivos **enquanto ficam no inventário**.
+- **Charms (Talismãs)** pequeno/grande/imenso — dão bônus passivos **enquanto ficam no inventário**; no inventário aparecem com **borda vermelha** para identificar de relance (não confundir com equipamento).
 - **Soquetes + Gemas + Runas + Joias + Runewords**:
   - Itens (armas/armaduras/elmos/escudos) podem ter **soquetes**; os mods de gemas/runas variam se a base é arma ou armadura.
   - **35 gemas** (7 tipos × 5 qualidades) e **17 runas**, que caem dos monstros (runas altas via Cubo).
@@ -102,6 +102,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
   - 1 item raro + 1 gema → re-rola o raro
   - 1 item mágico + 1 gema → re-rola o mágico
   - runa **Hel** + item encravado → esvazia os soquetes
+  - **cubo só com charms (2+) → funde todos num único Talismã**, somando os atributos iguais e adicionando os demais. Tem um **liga/desliga** no painel do Cubo (salvo por personagem; padrão LIGADO) caso você não queira esse comportamento.
 - **Baú de armazenamento (Stash)** com **abas infinitas** (48 espaços por aba; cria abas sob demanda) e botão de **Organizar**.
 - **Gerência do inventário**: botão **Organizar** (ordena por categoria → raridade → nível requerido) e **arrastar-e-soltar** (drag-and-drop) para **reordenar** itens, **equipar** soltando num slot de equipamento, ou **jogar no chão** numa zona de descarte. Item solto só pode ser recoletado depois que o jogador se afasta (evita pegá-lo de volta na hora).
 - **Tooltip do item ao passar o mouse no nome** — no inventário, na **loja (comprar/vender)** e no **baú** (dos dois lados), o balão com os atributos do item aparece ao passar o cursor sobre o nome.
@@ -158,7 +159,7 @@ src/
 
 ```bash
 node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 

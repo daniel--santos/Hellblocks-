@@ -320,4 +320,18 @@ ok('sort põe equipamento (arma) antes de gema', sortedInv[0].slot === 'weapon' 
 ok('sort: mesma categoria → raridade maior primeiro', sortedInv[0].rarity === 'unique' && sortedInv[1].rarity === 'rare');
 ok('sort agrupa categorias (charm antes de gema)', sortedInv.findIndex(x => x.slot === 'charm') < sortedInv.findIndex(x => x.kind === 'gem'));
 
+// ---- Cubo: condensar charms (toggle ligado/desligado) ----
+const charmA = { id: 'ca', name: 'Talismã A', slot: 'charm', kind: 'charm', rarity: 'magic', identified: true, reqLevel: 5, mods: { lifeFlat: 10, str: 2 } };
+const charmB = { id: 'cb', name: 'Talismã B', slot: 'charm', kind: 'charm', rarity: 'magic', identified: true, reqLevel: 12, mods: { lifeFlat: 5, resAll: 3 } };
+const charmC = { id: 'cc', name: 'Talismã C', slot: 'charm', kind: 'charm', rarity: 'rare', identified: true, reqLevel: 8, mods: { str: 4 } };
+const fused = transmute([charmA, charmB, charmC], rng, { condenseCharms: true });
+ok('cubo condensa charms quando LIGADO', fused.ok && fused.result.length === 1 && fused.result[0].slot === 'charm');
+ok('charm condensado SOMA atributos iguais (lifeFlat 15, str 6)', fused.result[0].mods.lifeFlat === 15 && fused.result[0].mods.str === 6);
+ok('charm condensado ADICIONA os demais (resAll 3)', fused.result[0].mods.resAll === 3);
+ok('charm condensado herda o maior reqLevel (12)', fused.result[0].reqLevel === 12);
+ok('cubo NÃO condensa quando DESLIGADO', transmute([charmA, charmB], rng, { condenseCharms: false }).ok === false);
+ok('cubo NÃO condensa por padrão (sem opts)', transmute([charmA, charmB], rng).ok === false);
+ok('1 charm sozinho não condensa', transmute([charmA], rng, { condenseCharms: true }).ok === false);
+ok('charm + não-charm não condensa', transmute([charmA, { id: 'g', kind: 'gem', slot: 'gem', socketableId: 'ruby_chipped', mods: {} }], rng, { condenseCharms: true }).ok === false);
+
 console.log(`\n${pass} verificações passaram.`);
