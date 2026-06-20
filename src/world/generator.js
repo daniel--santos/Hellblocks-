@@ -218,7 +218,9 @@ export function buildActOverworld(act, difficulty, seedStr) {
     // super único nomeado numa região (estilo D2)
     if (!superUnique && SUPER_UNIQUES[act.id] && rng.chance(0.5)) {
       const def = rng.pick(SUPER_UNIQUES[act.id]);
-      superUnique = { name: def.name, typeId: def.typeId, x: cx + rng.range(-8, 8), z: rng.range(-8, 8), level: areaLevel, minions: rng.int(3, 6) };
+      // a matilha (lacaios a até 2.5 do super único) não pode nascer em cima da entrada oeste da região 0
+      const xMin = (i === 0) ? (-regionR + 7 + 12) : (cx - 8); // entrada.x + 12 = -5; demais regiões = comportamento original
+      superUnique = { name: def.name, typeId: def.typeId, x: rng.range(xMin, cx + 8), z: rng.range(-8, 8), level: areaLevel, minions: rng.int(3, 6) };
     }
     regions.push({ name: act.zones[i] || `Região ${i + 1}`, index: i, cx, xMin: cx - SPACING / 2, xMax: cx + SPACING / 2 });
   }
