@@ -427,13 +427,16 @@ const hit = await page.evaluate(async () => {
   // isola um único monstro num ponto conhecido perto do jogador
   g.monsters.forEach(m => g.engine.scene.remove(m.mesh)); g.monsters = [];
   const mon = g._spawnFromDef({ typeId: 'zombie', level: 5, rankId: 'normal', x: g.player.position.x + 3, z: g.player.position.z + 1 });
-  g.engine.follow(g.player.position); // garante câmera atualizada
+  for (let i = 0; i < 30; i++) g.engine.follow(g.player.position); // converge a câmera no jogador
   const v = new THREE.Vector3(mon.position.x, 1.1, mon.position.z);
   v.project(g.engine.camera);
   const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
   const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
   out.center = g._pickMonsterAt(sx, sy) === mon;          // clique no centro
-  out.offset = g._pickMonsterAt(sx + 24, sy - 12) === mon; // clique deslocado (entre membros)
+  // clique deslocado ~0.9 unidade do mundo (dentro da tolerância) — projeta em pixels (zoom-independente)
+  const offW = new THREE.Vector3(mon.position.x + 0.8, 1.1, mon.position.z + 0.5); offW.project(g.engine.camera);
+  const ox = (offW.x * 0.5 + 0.5) * window.innerWidth, oy = (-offW.y * 0.5 + 0.5) * window.innerHeight;
+  out.offset = g._pickMonsterAt(ox, oy) === mon;
   out.miss = g._pickMonsterAt(sx + 400, sy) !== mon;       // longe não seleciona
   mon.dead = true;
   return out;
@@ -710,6 +713,40 @@ const qol = await page.evaluate(async () => {
 console.log('✓ Arco/Flecha/Baú-abas/Organizar/Drag:', JSON.stringify(qol));
 for (const [k, v] of Object.entries(qol)) if (v === false) throw new Error('qol falhou em: ' + k);
 
+// ===== Tooltip ao passar o mouse no NOME do item: venda (loja) + baú =====
+const tips = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const tipEl = document.getElementById('tooltip');
+  const hover = (node) => node && node.dispatchEvent(new MouseEvent('mouseenter', { clientX: 320, clientY: 300, bubbles: true }));
+  const shows = (name) => !tipEl.classList.contains('hidden') && tipEl.textContent.includes(name);
+
+  const it = { id: 'tipit', name: 'Espada do Teste', rarity: 'rare', slot: 'weapon', kind: 'sword', icon: '⚔️', identified: true, mods: { lifeFlat: 20 }, baseStats: { dmgMin: 5, dmgMax: 10 }, reqLevel: 1 };
+  p.inventory = [it];
+
+  // 1) LOJA — aba Vender: hover no nome mostra o balão
+  g.ui.hideTooltip();
+  g.ui.openShop(g, { role: 'merchant', name: 'Mercador', _stock: [] });
+  g.ui.shopTab = 'sell'; g.ui.renderShop(g);
+  hover(g.ui.modal.querySelector('[data-sell-tip]'));
+  out.sellTooltip = shows(it.name);
+  g.ui.hideTooltip(); g.ui.modal.classList.add('hidden');
+
+  // 2) BAÚ — hover no nome dos dois lados (inventário e baú)
+  g.stashTabs = [[]]; g.stashTab = 0;
+  g.ui.openStash(g);
+  hover(g.ui.modal.querySelector('.stash-in'));
+  out.stashInvTooltip = shows(it.name);
+  g.ui.hideTooltip();
+  g.moveToStash(it); g.ui.renderStash(g);
+  hover(g.ui.modal.querySelector('.stash-out'));
+  out.stashBoxTooltip = shows(it.name);
+  g.ui.hideTooltip(); g.ui.modal.classList.add('hidden');
+
+  return out;
+});
+console.log('✓ Tooltip venda/baú:', JSON.stringify(tips));
+for (const [k, v] of Object.entries(tips)) if (v === false) throw new Error('tooltip falhou em: ' + k);
+
 // Super Único: percorre zonas até achar um (45% por zona)
 const su = await page.evaluate(async () => {
   const g = window.__game;
@@ -743,62 +780,63 @@ console.log('✓ Arena de Boss:', JSON.stringify(transitions.boss));
 if (transitions.cow.monsters < 10) throw new Error('cow level com poucas vacas');
 if (!transitions.boss.hasBoss) throw new Error('arena sem boss');
 
-// ===== Mundo D2: cidade segura + cadeia de mapas + waypoint em cada mapa =====
+// ===== Mundo D2: overworld ÚNICO contínuo + cidade segura + waypoint por região =====
 const world = await page.evaluate(async () => {
   const g = window.__game; const out = {};
   const M = await import('http://localhost:5173/src/entities/monster.js');
   const wpOf = (z) => (z.interactables || []).filter(it => it.type === 'waypoint').length;
 
-  // 1) Cidade: flag safe, sem monstros, com waypoint e saída para a selva
+  // 1) Cidade: safe, sem monstros, waypoint, saída para o OVERWORLD; guarda remove intruso
   g.actIndex = 0; g._goToTown();
   await new Promise(r => setTimeout(r, 80));
-  out.townSafeFlag = g.zone.safe === true;
-  out.townNoMonsters = g.monsters.length === 0;
-  out.townHasWaypoint = wpOf(g.zone) >= 1;
-  out.townExitToWild = (g.zone.exits || []).some(e => e.to === 'wilderness');
-  // guarda real: injeta um monstro na cidade -> o loop (zona safe) o remove
+  out.townSafe = g.zone.safe === true && g.monsters.length === 0 && wpOf(g.zone) >= 1;
+  out.townExitToOverworld = (g.zone.exits || []).some(e => e.to === 'overworld');
   g.running = true; g.player.dead = false; g.input.setEnabled(true);
-  const intruder = M.makeMonster('zombie', 5, 'normal', g.difficultyObj, g.rng);
-  intruder.setPosition(0, 0); g.monsters.push(intruder); g.scene.add(intruder.mesh);
+  const intr = M.makeMonster('zombie', 5, 'normal', g.difficultyObj, g.rng);
+  intr.setPosition(0, 0); g.monsters.push(intr); g.scene.add(intr.mesh);
   await new Promise(r => setTimeout(r, 200));
   out.townRemovesIntruder = g.monsters.length === 0;
 
-  // 2) Cada zona da selva: waypoint + conexão (cidade + adiante) + perímetro de entrada seguro
-  const zwp = [], zconn = [], zsafe = [];
-  for (let z = 0; z < 3; z++) {
-    g._goToWilderness(z);
-    await new Promise(r => setTimeout(r, 60));
-    zwp.push(wpOf(g.zone));
-    const ex = g.zone.exits || [];
-    zconn.push(ex.some(e => e.to === 'town') && ex.some(e => e.to === 'wilderness' || e.to === 'boss'));
-    const s = g.zone.playerStart;
-    const near = g.monsters.filter(m => Math.hypot(m.position.x - s.x, m.position.z - s.z) < 7).length;
-    zsafe.push(near === 0);
-  }
-  out.everyWildHasWaypoint = zwp.every(n => n >= 1);
-  out.everyWildConnected = zconn.every(Boolean);
-  out.wildEntrySafe = zsafe.every(Boolean);
-  out.lastWildToBoss = (g.zone.exits || []).some(e => e.to === 'boss'); // zona 2 é a última -> boss
+  // 2) Overworld: UM mapa contínuo, >=2 regiões, waypoint em cada, saídas só cidade+boss
+  g._goToOverworld();
+  await new Promise(r => setTimeout(r, 120));
+  out.isOverworld = g.zone.type === 'overworld';
+  out.multipleRegions = (g.zone.regions || []).length >= 2;
+  out.waypointPerRegion = wpOf(g.zone) === g.zone.regions.length;
+  const ex = g.zone.exits || [];
+  out.overworldExits = ex.some(e => e.to === 'town') && ex.some(e => e.to === 'boss');
+  out.noInterRegionPortals = !ex.some(e => e.to === 'overworld' || e.to === 'wilderness'); // sem portais ENTRE regiões
+  out.hasSuperUnique = !!g.zone.superUnique;
+  // entrada (oeste) segura: nenhum monstro perto do playerStart
+  const s = g.zone.playerStart;
+  out.entrySafe = g.monsters.filter(m => Math.hypot(m.position.x - s.x, m.position.z - s.z) < 8).length === 0;
 
-  // 3) Arena do boss: waypoint próprio + volta à cidade
+  // 3) Caminhar de região a região NÃO troca de zona; só atualiza o nome da sub-área
+  const zoneRef = g.zone, name0 = g.zone.name;
+  const rLast = g.zone.regions[g.zone.regions.length - 1];
+  g.player.position.set(rLast.cx, 0, 0); g._updateOverworldRegion(false);
+  out.sameMapWhenWalking = g.zone === zoneRef && g.zone.type === 'overworld';
+  out.areaNameUpdates = g.zone.name === rLast.name && rLast.name !== name0;
+
+  // 4) Boss é uma DUNGEON separada (saída leste) com waypoint próprio
   g._goToBoss();
   await new Promise(r => setTimeout(r, 80));
-  out.bossHasWaypoint = wpOf(g.zone) >= 1;
-  out.bossExitToTown = (g.zone.exits || []).some(e => e.to === 'town');
+  out.bossDungeon = g.zone.type === 'boss' && wpOf(g.zone) >= 1 && (g.zone.exits || []).some(e => e.to === 'town');
 
-  // 4) Waypoints descobertos (cidade/selva/boss) e travel roteia por tipo
+  // 5) Waypoints descobertos (cidade / overworld×N / boss) + travel roteia por tipo
   const ids = g.waypointList.map(w => w.id);
-  out.discoveredAllTypes = ids.some(i => i.startsWith('town-')) && ids.some(i => i.startsWith('wild-')) && ids.some(i => i.startsWith('boss-'));
-  const wWild = g.waypointList.find(w => w.zoneType === 'wilderness');
+  out.discoveredAllTypes = ids.some(i => i.startsWith('town-')) && ids.filter(i => i.startsWith('over-')).length >= 2 && ids.some(i => i.startsWith('boss-'));
+  const wOver = g.waypointList.find(w => w.zoneType === 'overworld');
   const wBoss = g.waypointList.find(w => w.zoneType === 'boss');
   const wTown = g.waypointList.find(w => w.zoneType === 'town' || w.isTown);
-  g.travelToWaypoint(wWild); await new Promise(r => setTimeout(r, 60)); out.travelWild = g.zone.type === 'wilderness';
+  g.travelToWaypoint(wOver); await new Promise(r => setTimeout(r, 100));
+  out.travelOverworld = g.zone.type === 'overworld' && Math.abs(g.player.position.x - wOver.wpX) < 0.6;
   g.travelToWaypoint(wBoss); await new Promise(r => setTimeout(r, 60)); out.travelBoss = g.zone.type === 'boss';
   g.travelToWaypoint(wTown); await new Promise(r => setTimeout(r, 120)); out.travelTownSafe = g.zone.type === 'town' && g.monsters.length === 0;
 
   return out;
 });
-console.log('✓ Mundo D2 (cidade/cadeia/waypoints):', JSON.stringify(world));
+console.log('✓ Mundo D2 (overworld contínuo/cidade/waypoints):', JSON.stringify(world));
 for (const [k, v] of Object.entries(world)) if (v === false) throw new Error('mundo falhou em: ' + k);
 
 // ===== 3 slots de save (isolados) =====

@@ -63,6 +63,24 @@ function buildGround(rng, pal, radius) {
   return g;
 }
 
+// Detalhe de terreno (manchas + morros) SEM o plano-base — para regiões do overworld
+// que compartilham um chão grande comum.
+function addTerrainDetail(g, rng, pal, radius) {
+  const patches = Math.floor(radius * 2);
+  for (let i = 0; i < patches; i++) {
+    const s = rng.range(1.5, 4);
+    const patch = box(s, 0.12, s, pal.groundAlt);
+    patch.position.set(rng.range(-radius, radius), 0.02, rng.range(-radius, radius));
+    patch.receiveShadow = true; g.add(patch);
+  }
+  for (let i = 0; i < radius / 2; i++) {
+    const hx = rng.range(-radius, radius), hz = rng.range(-radius, radius);
+    if (Math.hypot(hx, hz) < 6) continue;
+    const h = rng.int(1, 3);
+    for (let y = 0; y < h; y++) { const blk = box(2, 1, 2, y === h - 1 ? pal.accent : pal.groundAlt); blk.position.set(hx, y + 0.5, hz); g.add(blk); }
+  }
+}
+
 function scatterProps(g, rng, pal, radius, count) {
   for (let i = 0; i < count; i++) {
     const x = rng.range(-radius, radius), z = rng.range(-radius, radius);
@@ -80,8 +98,7 @@ function generatePacks(rng, monsterPool, radius, areaLevel, packCount) {
   for (let i = 0; i < packCount; i++) {
     const cx = rng.range(-radius + 4, radius - 4);
     const cz = rng.range(-radius + 4, radius - 4);
-    if (Math.hypot(cx, cz) < 8) continue; // não nasce no centro
-    if (Math.hypot(cx, cz - (radius - 6)) < 11) continue; // perímetro seguro junto à conexão com a cidade
+    if (Math.hypot(cx, cz) < 8) continue; // não nasce no centro da região
     const packSize = rng.int(3, 6);
     // chance de pack de elite (champion/unique) — como D2
     const eliteRoll = rng.next();
@@ -157,6 +174,71 @@ export function buildWilderness(act, zoneIndex, difficulty, seedStr) {
     type: 'wilderness', name: act.zones[zoneIndex] || 'Selva', actId: act.id, zoneIndex,
     group, palette: pal, areaLevel, spawns, exits, waypoint, radius, interactables, superUnique,
     playerStart: { x: 0, z: radius - 6 },
+  };
+}
+
+// OVERWORLD do ato: UM ÚNICO mapa contínuo com todas as regiões de selva dispostas
+// numa faixa (oeste→leste), caminháveis sem loading. Cidade (oeste) e covil do boss
+// (leste) são instâncias separadas ("dungeons"). Cada região tem o seu waypoint.
+export function buildActOverworld(act, difficulty, seedStr) {
+  const seed = hashSeed(`${seedStr}-a${act.id}-overworld-${difficulty.id}`);
+  const rng = new RNG(seed);
+  const pal = act.palette;
+  const nRegions = Math.max(2, act.zones.length - 1);
+  const regionR = 24, SPACING = 44;
+  const lastCx = (nRegions - 1) * SPACING;
+
+  const group = new THREE.Group();
+  // chão grande e contínuo cobrindo a faixa inteira (sem emendas entre regiões)
+  const base = box(lastCx + regionR * 2 + 16, 0.4, regionR * 2 + 12, pal.ground);
+  base.position.set(lastCx / 2, -0.2, 0); base.receiveShadow = true; group.add(base);
+
+  const spawns = [], interactables = [], regions = [];
+  let superUnique = null;
+  for (let i = 0; i < nRegions; i++) {
+    const cx = i * SPACING;
+    const areaLevel = effectiveAreaLevel(act.areaLevel + i * 2, difficulty);
+    const sub = new THREE.Group(); sub.position.x = cx; group.add(sub);
+    addTerrainDetail(sub, rng, pal, regionR);
+    scatterProps(sub, rng, pal, regionR, Math.floor(regionR * 1.3));
+    // santuários/baús (posições deslocadas por cx para a lógica do jogo)
+    const ri = scatterInteractables(sub, rng, regionR, areaLevel);
+    for (const it of ri) it.position.x += cx;
+    interactables.push(...ri);
+    // packs de monstros (deslocados). Região 0 deixa a borda OESTE (entrada) segura.
+    for (const sp of generatePacks(rng, act.monsterPool, regionR, areaLevel, 4 + i)) {
+      sp.x += cx;
+      if (i === 0 && Math.hypot(sp.x - (-regionR + 7), sp.z) < 14) continue; // perímetro seguro na entrada (oeste, junto à cidade)
+      spawns.push(sp);
+    }
+    // waypoint da região
+    const wlx = rng.range(-7, 7), wlz = rng.range(-9, 9);
+    const wpMesh = makeWaypoint(); wpMesh.position.set(wlx, 0, wlz); sub.add(wpMesh);
+    interactables.push({ type: 'waypoint', mesh: wpMesh, position: new THREE.Vector3(cx + wlx, 0, wlz), wpId: `over-${act.id}-${i}`, label: `${act.zones[i] || 'Região ' + (i + 1)} (Ato ${act.id})`, actIndex: act.id - 1, zoneType: 'overworld', regionIndex: i });
+    // super único nomeado numa região (estilo D2)
+    if (!superUnique && SUPER_UNIQUES[act.id] && rng.chance(0.5)) {
+      const def = rng.pick(SUPER_UNIQUES[act.id]);
+      superUnique = { name: def.name, typeId: def.typeId, x: cx + rng.range(-8, 8), z: rng.range(-8, 8), level: areaLevel, minions: rng.int(3, 6) };
+    }
+    regions.push({ name: act.zones[i] || `Região ${i + 1}`, index: i, cx, xMin: cx - SPACING / 2, xMax: cx + SPACING / 2 });
+  }
+  // garante um super único
+  if (!superUnique && SUPER_UNIQUES[act.id]) {
+    const def = rng.pick(SUPER_UNIQUES[act.id]);
+    superUnique = { name: def.name, typeId: def.typeId, x: SPACING + rng.range(-8, 8), z: rng.range(-8, 8), level: effectiveAreaLevel(act.areaLevel + 2, difficulty), minions: rng.int(3, 6) };
+  }
+
+  // saídas: OESTE → cidade (hub) · LESTE → covil do boss (dungeon)
+  const exits = [
+    { x: -regionR + 3, z: 0, to: 'town', label: 'Cidade', color: 0x66aaff },
+    { x: lastCx + regionR - 3, z: 0, to: 'boss', label: 'Covil do Boss', color: 0xff3333 },
+  ];
+
+  return {
+    type: 'overworld', name: regions[0].name, actId: act.id, group, palette: pal,
+    areaLevel: effectiveAreaLevel(act.areaLevel, difficulty),
+    spawns, exits, interactables, regions, superUnique,
+    playerStart: { x: -regionR + 7, z: 0 },
   };
 }
 

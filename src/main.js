@@ -12,7 +12,7 @@ import { BOSSES } from './data/monsters.js';
 import { ACTS, COW_LEVEL, getAct, ACT_LORE } from './data/acts.js';
 import { DIFFICULTIES, DIFFICULTY_LIST } from './systems/difficulty.js';
 import { buildTown } from './world/town.js';
-import { buildWilderness, buildBossArena, buildCowLevel } from './world/generator.js';
+import { buildActOverworld, buildBossArena, buildCowLevel } from './world/generator.js';
 import { rollDrops, generateItem, nextItemId, makeUnique, sortInventoryItems } from './systems/loot.js';
 import { getInsertable } from './data/gems.js';
 import { monsterBaseXP, xpLevelPenalty, xpToReach } from './systems/leveling.js';
@@ -195,7 +195,7 @@ class Game {
 
   _discoverWaypoint(it) {
     if (this.waypointList.some(w => w.id === it.wpId)) return;
-    this.waypointList.push({ id: it.wpId, label: it.label, actIndex: it.actIndex, zoneIndex: it.zoneIndex, isTown: it.isTown, zoneType: it.zoneType });
+    this.waypointList.push({ id: it.wpId, label: it.label, actIndex: it.actIndex, zoneIndex: it.zoneIndex, isTown: it.isTown, zoneType: it.zoneType, wpX: it.position?.x, wpZ: it.position?.z, regionIndex: it.regionIndex });
     if (!it._silent) this.log(`Waypoint descoberto: ${it.label}`, 'magic');
   }
 
@@ -231,10 +231,33 @@ class Game {
   _bossName(act) {
     return (act.boss && BOSSES[act.boss]) ? BOSSES[act.boss].name : 'o chefe';
   }
-  _goToWilderness(zoneIndex) {
+  // Overworld do ato: UM mapa contínuo. opts.at = posição; opts.region = índice da região.
+  _goToOverworld(opts = {}) {
     const act = getAct(this.actIndex + 1);
-    this.zoneIndex = zoneIndex;
-    this._loadZone(buildWilderness(act, zoneIndex, this.difficultyObj, this.seedStr));
+    this._curRegion = -1;
+    this._loadZone(buildActOverworld(act, this.difficultyObj, this.seedStr));
+    if (opts.at) this.player.position.set(opts.at.x, 0, opts.at.z);
+    else if (opts.region != null && this.zone.regions) {
+      const r = this.zone.regions[opts.region] || this.zone.regions[0];
+      this.player.position.set(r.cx, 0, 0);
+    }
+    if ((opts.at || opts.region != null) && this.mercenary && !this.mercenary.dead) {
+      this.mercenary.position.set(this.player.position.x + 1.5, 0, this.player.position.z);
+    }
+    this._updateOverworldRegion(true);
+  }
+  // compat: "ir à selva" agora posiciona o jogador na região do overworld
+  _goToWilderness(region = 0) { this._goToOverworld({ region }); }
+  // atualiza a sub-área atual do overworld pela posição do jogador (nome da área estilo D2)
+  _updateOverworldRegion(force) {
+    if (!this.zone || this.zone.type !== 'overworld' || !this.zone.regions) return;
+    const px = this.player.position.x;
+    let region = this.zone.regions[0];
+    for (const r of this.zone.regions) if (px >= r.xMin) region = r;
+    if (force || this._curRegion !== region.index) {
+      this._curRegion = region.index; this.zoneIndex = region.index; this.zone.name = region.name;
+      if (!force) this.log('Entrando: ' + region.name, 'magic');
+    }
   }
   _goToBoss() {
     const act = getAct(this.actIndex + 1);
@@ -833,7 +856,8 @@ class Game {
     this.actIndex = w.actIndex;
     if (w.zoneType === 'town' || w.isTown) this._goToTown();
     else if (w.zoneType === 'boss') this._goToBoss();
-    else this._goToWilderness(w.zoneIndex);
+    else if (w.zoneType === 'overworld' && w.wpX != null) this._goToOverworld({ at: { x: w.wpX, z: w.wpZ } });
+    else this._goToOverworld({ region: w.regionIndex != null ? w.regionIndex : w.zoneIndex });
   }
 
   // ---------- Mercenário ----------
@@ -870,7 +894,7 @@ class Game {
     }
     if (this.player.scrolls.tp <= 0) { this.log('Sem Pergaminhos de Portal!', 'dmg'); return; }
     this.player.scrolls.tp--;
-    this.returnPoint = { actIndex: this.actIndex, zoneIndex: this.zoneIndex, type: this.zone.type };
+    this.returnPoint = { actIndex: this.actIndex, zoneIndex: this.zoneIndex, type: this.zone.type, x: this.player.position.x, z: this.player.position.z };
     this.log('🌀 Pergaminho de Portal usado — de volta à cidade.', 'magic');
     this._goToTown();
   }
@@ -878,10 +902,11 @@ class Game {
     const rp = this.returnPoint;
     this.returnPoint = null;
     this.actIndex = rp.actIndex;
-    if (rp.type === 'wilderness') this._goToWilderness(rp.zoneIndex);
+    if (rp.type === 'overworld') this._goToOverworld({ at: { x: rp.x, z: rp.z } });
+    else if (rp.type === 'wilderness') this._goToOverworld({ region: rp.zoneIndex });
     else if (rp.type === 'boss') this._goToBoss();
     else if (rp.type === 'cow') this._goToCow();
-    else this._goToWilderness(0);
+    else this._goToOverworld();
   }
 
   // ---------- Loja / economia ----------
@@ -1131,7 +1156,7 @@ class Game {
   }
   _takeExit(ex) {
     if (ex.to === 'town') this._goToTown();
-    else if (ex.to === 'wilderness') this._goToWilderness(ex.nextZone != null ? ex.nextZone : 0);
+    else if (ex.to === 'overworld' || ex.to === 'wilderness') this._goToOverworld(ex.nextZone != null ? { region: ex.nextZone } : {});
     else if (ex.to === 'boss') this._goToBoss();
     else if (ex.to === 'return') this._returnFromTown();
   }
@@ -1164,7 +1189,14 @@ class Game {
         for (const m of this.monsters) this.engine.scene.remove(m.mesh);
         this.monsters = [];
       }
-      for (const m of this.monsters) m.update(this, dt, this.time);
+      // no overworld (mapa grande contínuo): atualiza a sub-área e "adormece" monstros distantes
+      const isOverworld = this.zone && this.zone.type === 'overworld';
+      if (isOverworld) this._updateOverworldRegion(false);
+      const pp = this.player.position;
+      for (const m of this.monsters) {
+        if (isOverworld && Math.hypot(m.position.x - pp.x, m.position.z - pp.z) > 46) continue;
+        m.update(this, dt, this.time);
+      }
       // remove mortos
       this.monsters = this.monsters.filter(m => !m.dead);
 

@@ -65,8 +65,8 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Maestrias elementais** (passivas do Arcanista): Maestria do Fogo/Gelo/Raio amplificam o dano daquele elemento.
 - **Skills em ambos os botões**: skill direita (1–4) e skill esquerda (Shift+clique), como no D2.
 - **4 Atos** com **cidades FIXAS** (layout determinístico) e **selvas procedurais** (geração por seed).
-- **Mundo conectado estilo D2**: a cidade liga a uma **cadeia de mapas** — cidade → selva 0 → selva 1 → … → **arena do boss** — cada zona com um portal de volta à cidade e um portal "adiante". A **cidade é um perímetro seguro** (monstros não entram; uma regra do loop garante isso) e a **entrada da selva** vinda da cidade tem um buffer sem monstros.
-- **Waypoints em todos os mapas**: a cidade tem o **portal de waypoint** e **cada mapa** (cada selva e a arena do boss) tem o seu, descoberto ao entrar. Pela tecla **Z** dá para teleportar entre quaisquer waypoints descobertos (cidade/selva/boss).
+- **Overworld ÚNICO e contínuo por ato (estilo D2)**: as áreas da selva do ato formam **um só mapa caminhável**, sem loading entre elas — você anda de uma região para a outra de forma contínua (oeste → leste), e o **nome da sub-área** atualiza ao cruzar (Campos Sombrios → Floresta Profunda → …). A **cidade** (oeste) e o **covil do boss** (leste) são instâncias separadas ("dungeons"), entradas por portal. A **cidade é um perímetro seguro** (uma regra do loop remove qualquer monstro em zona segura) e a **entrada da selva** tem um buffer sem monstros. (Mapas grandes "adormecem" monstros distantes para manter o desempenho.)
+- **Waypoints em todos os mapas**: a cidade tem o **portal de waypoint**, **cada região** do overworld tem o seu e o covil do boss também — descobertos ao entrar. Pela tecla **Z** dá para teleportar entre quaisquer waypoints descobertos; viajar para um waypoint do overworld leva à posição exata daquela região no mapa.
 - **4 Bosses** de ato (Mandíbula Pútrida, Senhor das Brasas, Mãe do Vazio, Wither Ancião) + **Rei das Vacas** no Cow Level — entram em **FÚRIA** abaixo de 33% de vida (+dano/+velocidade, brilho vermelho).
 - **Level 1 → 99** com curva de XP crescente, pontos de atributo e de skill por nível.
 - **3 Dificuldades**: Normal → Pesadelo → Inferno (escala vida/dano/XP, penalidade de resistência, imunidades elementais) — desbloqueadas ao zerar o ato final, reiniciando o mundo mais cruel.
@@ -104,6 +104,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
   - runa **Hel** + item encravado → esvazia os soquetes
 - **Baú de armazenamento (Stash)** com **abas infinitas** (48 espaços por aba; cria abas sob demanda) e botão de **Organizar**.
 - **Gerência do inventário**: botão **Organizar** (ordena por categoria → raridade → nível requerido) e **arrastar-e-soltar** (drag-and-drop) para **reordenar** itens, **equipar** soltando num slot de equipamento, ou **jogar no chão** numa zona de descarte. Item solto só pode ser recoletado depois que o jogador se afasta (evita pegá-lo de volta na hora).
+- **Tooltip do item ao passar o mouse no nome** — no inventário, na **loja (comprar/vender)** e no **baú** (dos dois lados), o balão com os atributos do item aparece ao passar o cursor sobre o nome.
 
 ### Monstros & mundo
 - **Ranks** normal/campeão/único/boss, com **afixos de monstro** (Veloz, Encantado-Fogo, Pele de Pedra, etc.), **imunidades elementais** (dificuldades altas) e resistências.
@@ -156,7 +157,7 @@ src/
 
 ```bash
 node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo conectado (cidade segura/cadeia/waypoint em cada mapa/travel), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 

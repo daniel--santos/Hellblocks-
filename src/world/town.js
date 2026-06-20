@@ -319,7 +319,7 @@ export function buildTown(act) {
     safe: true,            // perímetro seguro: monstros não entram na cidade
     spawns: [],            // cidade é segura, sem monstros
     waypoint: { x: -8, z: 8 },
-    exits: [{ x: 0, z: -16, to: 'wilderness', label: 'Selva' }],
+    exits: [{ x: 0, z: -16, to: 'overworld', label: 'Selva' }],
     cowPortal: { x: -15, z: -15 },
     interactables,
     playerStart: { x: 0, z: 0 },

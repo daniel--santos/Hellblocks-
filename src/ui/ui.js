@@ -787,8 +787,18 @@ export class UI {
     html += p.inventory.map(it => itemBtn(it, 'stash-in')).join('') || '<p style="color:#8a7a5a;font-size:12px">vazio</p>';
     html += `</div></div></div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Abas infinitas — itens guardados não somam bônus. Esc para fechar.</p>`;
     this.modal.innerHTML = html;
-    this.modal.querySelectorAll('.stash-in').forEach(n => n.onclick = () => { game.moveToStash(p.inventory.find(x => x.id === n.dataset.id)); this.renderStash(game); });
-    this.modal.querySelectorAll('.stash-out').forEach(n => n.onclick = () => { game.moveFromStash(game.stashTabs.flat().find(x => x.id === n.dataset.id)); this.renderStash(game); });
+    this.modal.querySelectorAll('.stash-in').forEach(n => {
+      const it = p.inventory.find(x => x.id === n.dataset.id);
+      n.onmouseenter = (e) => { if (it) this.showItemTooltip(it, e); };
+      n.onmouseleave = () => this.hideTooltip();
+      n.onclick = () => { this.hideTooltip(); game.moveToStash(it); this.renderStash(game); };
+    });
+    this.modal.querySelectorAll('.stash-out').forEach(n => {
+      const it = game.stashTabs.flat().find(x => x.id === n.dataset.id);
+      n.onmouseenter = (e) => { if (it) this.showItemTooltip(it, e); };
+      n.onmouseleave = () => this.hideTooltip();
+      n.onclick = () => { this.hideTooltip(); game.moveFromStash(it); this.renderStash(game); };
+    });
     this.modal.querySelectorAll('.stash-tab').forEach(n => n.onclick = () => { game.setStashTab(+n.dataset.i); this.renderStash(game); });
     this.modal.querySelector('.stash-addtab').onclick = () => { game.addStashTab(); this.renderStash(game); };
     this.modal.querySelector('.stash-sort').onclick = () => { game.sortStash(); this.renderStash(game); };
