@@ -23,7 +23,7 @@ import { SKILLS } from './data/skills.js';
 import * as Combat from './systems/combat.js';
 import { Mercenary, mercForAct, hireCost, MERC_TYPES } from './entities/mercenary.js';
 import { Summon } from './entities/summon.js';
-import { insertIntoSocket, emptySockets } from './systems/sockets.js';
+import { insertIntoSocket, emptySockets, canHaveSockets, maxSocketsForItem } from './systems/sockets.js';
 import { transmute } from './systems/cube.js';
 import { saveGame, loadSaveData, clearSave, listSaves } from './systems/save.js';
 import { generateShopStock, gambleRoll, buyPrice, sellPrice, gamblePrice, CONSUMABLE_PRICES } from './systems/economy.js';
@@ -120,6 +120,7 @@ class Game {
       gold: data.gold || 0, potions: data.potions || { life: 4, mana: 4, rejuv: 1 }, scrolls: data.scrolls || { id: 3, tp: 1 },
       inventory: data.inventory || [], equipment: data.equipment || {},
       beltSkills: data.beltSkills || [], rightSkill: data.rightSkill || null, leftSkill: data.leftSkill || 'attack', activeAura: data.activeAura || null,
+      questBonus: data.questBonus || { resAll: 0, lifeFlat: 0 }, // bônus permanentes de quest (saves antigos = 0)
     });
     p.recompute(); p.life = p.maxLife; p.mana = p.maxMana;
     this.engine.scene.add(p.mesh);
@@ -648,10 +649,28 @@ class Game {
   }
   _grantReward(reward) {
     if (!reward) return;
-    if (reward.skillPoints) this.player.skillPoints += reward.skillPoints;
-    if (reward.statPoints) this.player.statPoints += reward.statPoints;
-    if (reward.gold) this.player.gold += reward.gold;
-    if (reward.item) { const it = generateItem(Math.max(10, this.player.level), 'rare', this.rng); this.player.inventory.push(it); }
+    const p = this.player;
+    if (reward.skillPoints) p.skillPoints += reward.skillPoints;
+    if (reward.statPoints) p.statPoints += reward.statPoints;
+    if (reward.gold) p.gold += reward.gold;
+    if (reward.item) { const it = generateItem(Math.max(10, p.level), 'rare', this.rng); p.inventory.push(it); }
+    // recompensas PERMANENTES (estilo D2: Anya = +resist, Pássaro Dourado = +vida)
+    if (reward.resAll) { p.questBonus.resAll += reward.resAll; p.recompute(); }
+    if (reward.lifeFlat) { p.questBonus.lifeFlat += reward.lifeFlat; p.recompute(); p.life = p.maxLife; }
+    // Larzuk/Forja: soqueta gratuitamente 1 item elegível
+    if (reward.socket) this._grantSocketReward();
+  }
+  // Soqueta de graça o melhor item elegível (arma primeiro, depois corpo/elmo/escudo, depois inventário).
+  _grantSocketReward() {
+    const p = this.player;
+    const eligible = (it) => it && canHaveSockets(it) && !it.sockets;
+    const pref = ['weapon', 'body', 'helm', 'shield', 'gloves', 'boots', 'belt'];
+    const it = pref.map(s => p.equipment[s]).find(eligible) || p.inventory.find(eligible);
+    if (!it) { p.gold += 500; this.log('🔩 Larzuk não achou item p/ soquetar — recebeu 500 de ouro.', 'magic'); return; }
+    it.sockets = Math.min(maxSocketsForItem(it), 3);
+    it.socketed = [];
+    p.recompute();
+    this.log(`🔩 ${it.name} recebeu ${it.sockets} soquete(s)!`, 'set');
   }
 
   // aura ativa (Guardião)

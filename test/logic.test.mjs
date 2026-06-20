@@ -194,6 +194,17 @@ const aq = buildActQuests(0);
 ok('cada ato tem 3 quests', aq.length === 3);
 ok('quests têm recompensas', aq.every(q => q.reward && q.rewardText));
 ok('quest de boss menciona o boss do ato', aq.some(q => q.type === 'boss'));
+// Quests EXCLUSIVAS por ato com recompensas icônicas (D2: Den of Evil, Larzuk, Anya, Lam Esen, Golden Bird, Izual)
+const qFind = (qs, t) => qs.find(q => q.type === t);
+const a1q = buildActQuests(0), a2q = buildActQuests(1), a3q = buildActQuests(2), a4q = buildActQuests(3);
+ok('Ato I: Covil do Mal dá +1 skill', qFind(a1q, 'kills').reward.skillPoints === 1 && /Covil do Mal/.test(qFind(a1q, 'kills').text));
+ok('Ato I: Larzuk soqueta (recompensa socket)', qFind(a1q, 'shrine').reward.socket === true);
+ok('Ato II: Anya dá +10% resist (resAll)', qFind(a2q, 'shrine').reward.resAll === 10);
+ok('Ato III: Tomo de Lam Esen dá +5 atributos', qFind(a3q, 'kills').reward.statPoints === 5);
+ok('Ato III: Pássaro Dourado dá +20 vida (lifeFlat)', qFind(a3q, 'shrine').reward.lifeFlat === 20);
+ok('Ato IV: Anjo Caído (Izual) dá +2 skills', qFind(a4q, 'kills').reward.skillPoints === 2);
+ok('quests são exclusivas por ato (nomes diferentes)', qFind(a1q, 'kills').text !== qFind(a2q, 'kills').text);
+ok('quest de boss substitui {boss}', !qFind(a1q, 'boss').text.includes('{boss}') && qFind(a1q, 'boss').text.length > 10);
 ok('afixo Recuperação Rápida (FHR) existe', AFFIXES.suffix.some(a => a.stat === 'fhr'));
 ok('afixo Não Pode Ser Congelado existe', AFFIXES.suffix.some(a => a.stat === 'cannotFreeze'));
 

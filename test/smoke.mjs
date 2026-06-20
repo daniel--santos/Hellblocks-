@@ -279,11 +279,23 @@ const d2d = await page.evaluate(async () => {
   C.castSkill(g, p, 'holy_spirits', p.position.clone());
   out.summon = g.summons.length > 0 && g.scene.children.includes(g.summons[0].mesh);
 
-  // Quest de limpeza concede recompensa
+  // Quest do Covil do Mal (Den of Evil, Ato I) concede +1 skill
   const spBefore = p.skillPoints;
-  g.killCount = 30; g._checkQuest('kills');
-  const clearQ = (g.questLog || []).find(q => q.id === 'clear');
-  out.quest = !!clearQ && clearQ.done && p.skillPoints > spBefore;
+  g.killCount = 99; g._checkQuest('kills');
+  const denQ = (g.questLog || []).find(q => q.id === 'den_of_evil');
+  out.quest = !!denQ && denQ.done && p.skillPoints > spBefore;
+
+  // Recompensas icônicas: Larzuk (soquete grátis), Anya (+resist perm.), Pássaro Dourado (+vida perm.)
+  const sockedBefore = [...Object.values(p.equipment), ...p.inventory].filter(it => it && it.sockets > 0).length;
+  p.inventory.push({ id: 'qsk', name: 'Espada de Quest', rarity: 'normal', slot: 'weapon', kind: 'sword', icon: '⚔️', identified: true, mods: {} });
+  g._grantReward({ socket: true });
+  out.questSocket = [...Object.values(p.equipment), ...p.inventory].filter(it => it && it.sockets > 0).length > sockedBefore;
+  const fireBefore = p.resBase.fire;
+  g._grantReward({ resAll: 10 });
+  out.questResist = p.questBonus.resAll === 10 && p.resBase.fire === fireBefore + 10;
+  const lifeBefore = p.maxLife;
+  g._grantReward({ lifeFlat: 20 });
+  out.questLife = p.questBonus.lifeFlat === 20 && p.maxLife === lifeBefore + 20;
 
   // Perda de XP ao morrer em Pesadelo
   g.hardcore = false; g.difficultyObj = D.DIFFICULTIES.nightmare;
@@ -924,6 +936,7 @@ const slots = await page.evaluate(async () => {
   out.twoSlots = S.hasSave(1) && S.hasSave(2);
   S.clearSave(1); S.clearSave(2);
   out.cleared = !S.hasSave(1) && !S.hasSave(2);
+  g.player.questBonus = { resAll: 7, lifeFlat: 13 };          // bônus permanente de quest p/ checar persistência
   g.saveSlot = 0; g.save();                                  // deixa o slot 0 p/ o teste de Continuar
   out.slot0Saved = S.hasSave(0) && !S.hasSave(1) && !S.hasSave(2);
   return out;
@@ -941,9 +954,10 @@ if (slotCount !== 3) throw new Error('esperava 3 cartões de slot, obteve ' + sl
 if (!filledSlot) throw new Error('nenhum slot preenchido após salvar');
 await page.evaluate(() => { const b = document.querySelector('.save-slot.filled .slot-continue'); if (b) b.click(); });
 await page.waitForFunction(() => window.__game && window.__game.running && window.__game.player, { timeout: 10000 });
-const loaded = await page.evaluate(() => ({ cls: window.__game.player.cls.name, level: window.__game.player.level, zone: window.__game.zone.name }));
+const loaded = await page.evaluate(() => ({ cls: window.__game.player.cls.name, level: window.__game.player.level, zone: window.__game.zone.name, questBonus: window.__game.player.questBonus }));
 console.log('✓ Continuar carregou o personagem salvo:', JSON.stringify(loaded));
 if (loaded.level < 2) throw new Error('personagem carregado com nível incorreto');
+if (!loaded.questBonus || loaded.questBonus.resAll !== 7 || loaded.questBonus.lifeFlat !== 13) throw new Error('questBonus (recompensa permanente) não persistiu no save/load');
 
 await browser.close();
 

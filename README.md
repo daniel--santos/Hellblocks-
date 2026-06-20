@@ -125,7 +125,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Reespecialização (respec)**: na Curandeira, devolve todos os pontos de skill e de atributo por ouro (estilo "Token of Absolution" do D2).
 - **Pergaminho de Portal (Town Portal)**: volta à cidade e abre um portal de retorno para o ponto exato.
 - **Poções**: vida, mana e **rejuvenescimento** (restaura vida + mana).
-- **Cadeia de quests por ato** (limpar a região · ativar um santuário · derrotar o boss) com recompensas variadas (+skill, +atributos, ouro) — log de quests na tecla **J**.
+- **Quests exclusivas por ato com recompensas icônicas** (estilo Diablo II): cada um dos 4 atos tem 3 quests nomeadas — **Ato I**: O Covil do Mal (+1 skill), Ferramentas do Ofício (Larzuk soqueta 1 item), As Irmãs do Massacre (+1 skill, +ouro); **Ato II**: A Toca de Radament (+1 skill), O Santuário Arcano (Anya: **+10% a todas as resistências, permanente**), As Sete Tumbas; **Ato III**: O Tomo de Lam Esen (**+5 atributos**), O Pássaro Dourado (**+20 de vida, permanente**), O Guardião; **Ato IV**: O Anjo Caído/Izual (**+2 skills**), A Forja do Inferno (soqueta 1 item), O Fim do Terror. Os bônus permanentes (resist./vida) e soquetes são salvos no personagem. Log de quests na tecla **J**.
 - **Telas de lore por ato**: ao entrar num novo ato, uma narrativa curta ambienta a história (estilo D2).
 - **Penalidade de morte**: perde 10% do ouro; e **perde XP** em Pesadelo/Inferno (sem descer de nível), como no D2. O Cow Level dá um charm garantido como recompensa secreta.
 

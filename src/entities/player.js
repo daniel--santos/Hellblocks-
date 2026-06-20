@@ -32,6 +32,7 @@ export class Player {
     this.scrolls = { id: 3, tp: 1 }; // pergaminhos de Identificação e de Portal
     this.plusSkills = 0;
     this.activeAura = null;         // Guardião escolhe UMA aura ativa por vez (estilo D2)
+    this.questBonus = { resAll: 0, lifeFlat: 0 }; // bônus PERMANENTES de quests (Anya/Pássaro Dourado)
 
     this.position = new THREE.Vector3(0, 0, 0);
     this.facing = 0;
@@ -104,9 +105,9 @@ export class Player {
     this.derived.attackRating = eq.attackRating || 0;
     this.derived.fcr = eq.fcr || 0;
 
-    // vida / mana
+    // vida / mana (questBonus.lifeFlat = recompensa permanente do Pássaro Dourado)
     this.maxLife = Math.floor(
-      cls.startingLife + vit * cls.lifePerVit + this.level * cls.lifePerLevel + (eq.lifeFlat || 0)
+      cls.startingLife + vit * cls.lifePerVit + this.level * cls.lifePerLevel + (eq.lifeFlat || 0) + (this.questBonus?.lifeFlat || 0)
     );
     this.maxMana = Math.floor(
       cls.startingMana + ene * cls.manaPerEne + this.level * cls.manaPerLevel + (eq.manaFlat || 0)
@@ -131,12 +132,13 @@ export class Player {
     this.derived.defense = defense;
     this.derived.physReduction = Math.min(0.7, defense / (defense + 120));
 
-    // resistências base (de itens) — penalidade da dificuldade aplicada no Game
+    // resistências base (de itens + bônus permanente de quest da Anya) — penalidade da dificuldade aplicada no Game
+    const qRes = this.questBonus?.resAll || 0;
     this.resBase = {
-      fire: (eq.resFire || 0) + (eq.resAll || 0) + aura.auraResAll * 100,
-      cold: (eq.resCold || 0) + (eq.resAll || 0) + aura.auraResAll * 100,
-      lightning: (eq.resLight || 0) + (eq.resAll || 0) + aura.auraResAll * 100,
-      poison: (eq.resPoison || 0) + (eq.resAll || 0),
+      fire: (eq.resFire || 0) + (eq.resAll || 0) + qRes + aura.auraResAll * 100,
+      cold: (eq.resCold || 0) + (eq.resAll || 0) + qRes + aura.auraResAll * 100,
+      lightning: (eq.resLight || 0) + (eq.resAll || 0) + qRes + aura.auraResAll * 100,
+      poison: (eq.resPoison || 0) + (eq.resAll || 0) + qRes,
     };
 
     // velocidades
