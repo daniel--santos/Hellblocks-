@@ -482,7 +482,10 @@ export function applyDamageToCompanion(game, comp, amount, element) {
   if (comp.life <= 0) {
     comp.dead = true;
     game.floatText(comp.position, '💀', 'desc');
-    if (comp === game.mercenary) game.log('Seu mercenário caiu! Reviva-o na cidade.', 'dmg');
+    if (comp === game.mercenary) {
+      if (comp.mesh) comp.mesh.visible = false; // some da tela ao morrer; reviveMercenary() reexibe na cidade
+      game.log('Seu mercenário caiu! Reviva-o na cidade.', 'dmg');
+    }
   }
 }
 

@@ -326,6 +326,10 @@ const d2e = await page.evaluate(async () => {
   // companheiro morre
   g.mercenary.life = 1; C.applyDamageToCompanion(g, g.mercenary, 999, 'physical');
   out.compDies = g.mercenary.dead === true;
+  // ao morrer, o modelo do mercenário some da tela; reviver na cidade reexibe
+  out.mercDeadHidesMesh = g.mercenary.mesh.visible === false;
+  g.player.gold = 99999; g.reviveMercenary();
+  out.mercReviveShowsMesh = g.mercenary.mesh.visible === true && g.mercenary.dead === false;
 
   // aura de matilha: único reforça aliado próximo
   const uni = M.makeMonster('zombie', 5, 'unique', g.difficultyObj, g.rng);
