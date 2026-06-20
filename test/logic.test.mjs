@@ -161,6 +161,28 @@ const cube3 = [
 const cubeRes = transmute(cube3, rng);
 ok('cubo: 3 gemas iguais sobem de qualidade', cubeRes.ok && cubeRes.result[0].socketableId === 'ruby_flawed');
 
+// cubo: CRAVEJADO (Crafted) — base + runa + gema + joia -> raro c/ mods garantidos (pela gema) + afixos
+const craftCube = [
+  { id: 'cb_base', name: 'Elmo', slot: 'helm', kind: 'helm', baseId: 'cap', icon: '⛑️', reqLevel: 5, baseStats: { defense: 12 }, mods: {}, identified: true },
+  { id: 'cb_rune', kind: 'rune', socketableId: 'sol', slot: 'rune', name: 'Runa Sol' },
+  { id: 'cb_gem', kind: 'gem', socketableId: 'ruby_perfect', slot: 'gem', name: 'Rubi Perfeito' },
+  { id: 'cb_jewel', slot: 'jewel', kind: 'jewel', mods: {}, name: 'Joia' },
+];
+const craftRes = transmute(craftCube, rng);
+const cr = craftRes.result && craftRes.result[0];
+ok('cubo: cravejado é raro identificado do mesmo slot', craftRes.ok && cr && cr.crafted === true && cr.rarity === 'rare' && cr.identified === true && cr.slot === 'helm');
+ok('cravejado de Rubi (Sangue) garante +vida e roubo de vida', cr && cr.craftType === 'Sangue' && cr.mods.lifeFlat > 0 && cr.mods.lifeLeech > 0);
+ok('cravejado tem afixos raros aleatórios além dos garantidos', cr && Array.isArray(cr.affixes) && cr.affixes.length >= 1);
+// gema diferente -> tipo de craft diferente (Esmeralda = Segurança)
+const craftCube2 = [
+  { id: 'c2_base', name: 'Armadura', slot: 'body', kind: 'body', baseId: 'leather', icon: '🛡️', reqLevel: 8, baseStats: { defense: 30 }, mods: {}, identified: true },
+  { id: 'c2_rune', kind: 'rune', socketableId: 'tir', slot: 'rune', name: 'Runa Tir' },
+  { id: 'c2_gem', kind: 'gem', socketableId: 'emerald_perfect', slot: 'gem', name: 'Esmeralda Perfeita' },
+  { id: 'c2_jewel', slot: 'jewel', kind: 'jewel', mods: {}, name: 'Joia' },
+];
+const cr2 = transmute(craftCube2, rng).result?.[0];
+ok('cravejado de Esmeralda (Segurança) garante defesa e resist', cr2 && cr2.craftType === 'Segurança' && cr2.mods.defenseFlat > 0 && cr2.mods.resAll > 0);
+
 // ---- Requisitos / Durabilidade / Etéreo / Rejuv ----
 import { CONSUMABLE_PRICES } from '../src/systems/economy.js';
 let foundReq = false, foundDur = false, foundEth = false, ethBonus = false;

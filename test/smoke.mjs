@@ -640,6 +640,19 @@ const sockets = await page.evaluate(async () => {
   const ok = g.cubeTransmute();
   out.cube = ok && g.cube.length === 1 && g.cube[0].socketableId === 'sapphire_flawed';
 
+  // Cubo: CRAVEJADO (base + runa + gema + joia) -> raro com mods garantidos + afixos
+  const rngS = g.rng.state; // craftItem usa generateItem (consome RNG) — restaura p/ não poluir blocos seguintes
+  g.cube = [];
+  g.player.inventory.push({ id: 'cbB', name: 'Elmo', slot: 'helm', kind: 'helm', baseId: 'cap', icon: '⛑️', reqLevel: 5, baseStats: { defense: 12 }, mods: {}, identified: true });
+  g.player.inventory.push({ id: 'cbR', name: 'Runa Sol', kind: 'rune', socketableId: 'sol', slot: 'rune', icon: '🔣', identified: true, mods: {} });
+  g.player.inventory.push({ id: 'cbG', name: 'Rubi Perfeito', kind: 'gem', socketableId: 'ruby_perfect', slot: 'gem', icon: '🔴', identified: true, mods: {} });
+  g.player.inventory.push({ id: 'cbJ', name: 'Joia', slot: 'jewel', kind: 'jewel', icon: '🔷', identified: true, mods: {} });
+  ['cbB', 'cbR', 'cbG', 'cbJ'].forEach(id => { const it = g.player.inventory.find(x => x.id === id); if (it) g.moveToCube(it); });
+  const craftOk = g.cubeTransmute();
+  const cr = g.cube[0];
+  out.craft = craftOk && g.cube.length === 1 && !!cr && cr.crafted === true && cr.rarity === 'rare' && cr.slot === 'helm' && cr.mods.lifeFlat > 0 && cr.mods.lifeLeech > 0 && (cr.affixes || []).length >= 1;
+  g.cube = []; g.rng.state = rngS;
+
   // Stash: guarda e retira
   const stItem = { id: 'st1', name: 'Item Stash', rarity: 'magic', slot: 'helm', icon: '🪖', identified: true, mods: {} };
   g.player.inventory.push(stItem);

@@ -24,6 +24,43 @@ function fuseCharms(charms) {
   };
 }
 
+// Tipos de "craft" estilo Diablo II, mapeados pela GEMA usada. Mods GARANTIDOS escalam por
+// tier da gema (g) e da runa (r). O item ainda ganha afixos raros aleatórios por cima.
+const CRAFT_TYPES = {
+  ruby:     { name: 'Sangue',     mods: (g, r) => ({ lifeFlat: 10 + g * 5 + r, lifeLeech: 2 + Math.floor(g / 2) }) },
+  amethyst: { name: 'Conjurador', mods: (g, r) => ({ fcr: 0.05 + g * 0.02, manaFlat: 12 + g * 5 + r }) },
+  sapphire: { name: 'Impacto',    mods: (g, r) => ({ lifeFlat: 8 + g * 3, attackRating: 25 + g * 12 + r * 3 }) },
+  emerald:  { name: 'Segurança',  mods: (g, r) => ({ defenseFlat: 15 + g * 9 + r * 2, resAll: 3 + g * 2, fhr: 0.05 + g * 0.02 }) },
+  topaz:    { name: 'Tempestade', mods: (g, r) => ({ flatLight: 4 + g * 3, resLight: 6 + g * 5, magicFind: 5 + g * 3 }) },
+  diamond:  { name: 'Sagrado',    mods: (g, r) => ({ resAll: 4 + g * 3, attackRating: 25 + g * 12 }) },
+  skull:    { name: 'Espírito',   mods: (g, r) => ({ manaPerKill: 1 + Math.floor(g / 2), lifePerKill: 1 + Math.floor(g / 2) }) },
+};
+
+// Item CRAVEJADO (Crafted) estilo D2: usa a BASE escolhida (slot/kind/baseStats), aplica os mods
+// garantidos do tipo de craft (pela gema) + afixos raros aleatórios (via generateItem). A joia é reagente.
+function craftItem(base, runeDef, gemDef, rng) {
+  const craft = CRAFT_TYPES[gemDef.gemBase] || CRAFT_TYPES.diamond;
+  const ilvl = Math.min(85, (base.reqLevel || 10) + runeDef.tier * 2 + gemDef.tier * 2);
+  const roll = generateItem(ilvl, 'rare', rng, { slot: base.slot }); // só p/ colher afixos raros do slot
+  const mods = { ...roll.mods };
+  for (const [k, v] of Object.entries(craft.mods(gemDef.tier, runeDef.tier))) {
+    mods[k] = Math.round(((mods[k] || 0) + v) * 100) / 100;
+  }
+  const it = {
+    id: nextItemId(), name: `${base.name} Cravejado (${craft.name})`,
+    rarity: 'rare', crafted: true, craftType: craft.name,
+    baseId: base.baseId, slot: base.slot, kind: base.kind, icon: base.icon,
+    baseStats: { ...(base.baseStats || {}) },
+    mods, affixes: roll.affixes || [],
+    reqLevel: Math.max(base.reqLevel || 1, roll.reqLevel || 1),
+    ilvl, identified: true,
+    reqStr: base.reqStr || 0, reqDex: base.reqDex || 0,
+    flavor: `Cravejado: ${craft.name}`,
+  };
+  if (base.durability) it.durability = { cur: base.durability.max, max: base.durability.max };
+  return it;
+}
+
 const RUNE_BY_TIER = Object.values(RUNES).sort((a, b) => a.tier - b.tier);
 function nextRuneId(runeId) {
   const cur = RUNES[runeId];
@@ -44,6 +81,7 @@ export const CUBE_RECIPES = [
   '3 gemas quaisquer + 1 item sem soquete → adiciona soquetes',
   '1 item raro + 1 gema → re-rola o item raro',
   '1 item mágico + 1 gema → re-rola o item mágico',
+  '1 base + 1 runa + 1 gema + 1 joia → item CRAVEJADO (mods garantidos pela gema + afixos)',
   'runa Hel + 1 item encravado → esvazia os soquetes',
   '(opcional) só charms → funde todos num único Talismã (soma os mods)',
 ];
@@ -53,6 +91,7 @@ export const CUBE_RECIPES = [
 export function transmute(items, rng, opts = {}) {
   const gems = items.filter(i => i.kind === 'gem');
   const runes = items.filter(i => i.kind === 'rune');
+  const jewels = items.filter(i => i.slot === 'jewel');
   const gear = items.filter(i => i.slot && !['gem', 'rune', 'charm', 'jewel'].includes(i.slot));
 
   // SÓ charms (2+) -> funde todos num único Talismã, somando os mods (se a feature estiver ligada)
@@ -86,6 +125,14 @@ export function transmute(items, rng, opts = {}) {
     it.sockets = rng.int(1, Math.min(maxSocketsForItem(it), 3));
     it.socketed = [];
     return { ok: true, message: `${it.sockets} soquete(s) adicionado(s) a ${it.name}!`, result: [it] };
+  }
+  // CRAVEJADO (Crafted): 1 base + 1 runa + 1 gema + 1 joia -> raro com mods garantidos (por gema) + afixos
+  if (items.length === 4 && gear.length === 1 && runes.length === 1 && gems.length === 1 && jewels.length === 1) {
+    const gemDef = GEMS[gems[0].socketableId];
+    const runeDef = RUNES[runes[0].socketableId];
+    if (!gemDef || !runeDef) return { ok: false, message: 'Gema ou runa inválida para cravejar.' };
+    const crafted = craftItem(gear[0], runeDef, gemDef, rng);
+    return { ok: true, message: `${crafted.name} forjado!`, result: [crafted] };
   }
   // 1 item raro + 1 gema -> re-rola raro
   if (items.length === 2 && gear.length === 1 && gems.length === 1 && gear[0].rarity === 'rare') {

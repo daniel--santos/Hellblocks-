@@ -101,6 +101,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
   - 3 gemas + item sem soquete → adiciona soquetes
   - 1 item raro + 1 gema → re-rola o raro
   - 1 item mágico + 1 gema → re-rola o mágico
+  - **1 base + 1 runa + 1 gema + 1 joia → item CRAVEJADO (Crafted)**: raro com **mods garantidos pelo tipo da gema** (Rubi=Sangue +vida/roubo · Ametista=Conjurador FCR/mana · Safira=Impacto vida/AR · Esmeralda=Segurança defesa/resist/FHR · Topázio=Tempestade raio/MF · Diamante=Sagrado resist/AR · Crânio=Espírito vida/mana por morte) **+ afixos raros aleatórios** por cima; escala com o tier da runa/gema.
   - runa **Hel** + item encravado → esvazia os soquetes
   - **cubo só com charms (2+) → funde todos num único Talismã**, somando os atributos iguais e adicionando os demais. Tem um **liga/desliga** no painel do Cubo (salvo por personagem; padrão LIGADO) caso você não queira esse comportamento.
 - **Baú de armazenamento (Stash)** com **abas infinitas** (48 espaços por aba; cria abas sob demanda) e botão de **Organizar**.
@@ -158,8 +159,8 @@ src/
 ## Testes
 
 ```bash
-node test/logic.test.mjs   # 141 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/logic.test.mjs   # 145 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo c/ craft de cravejados, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo (incl. cravejados/craft), joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 
