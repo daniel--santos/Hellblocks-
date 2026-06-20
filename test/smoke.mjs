@@ -747,6 +747,33 @@ const tips = await page.evaluate(async () => {
 console.log('✓ Tooltip venda/baú:', JSON.stringify(tips));
 for (const [k, v] of Object.entries(tips)) if (v === false) throw new Error('tooltip falhou em: ' + k);
 
+// ===== Colisão: o jogador não atravessa estruturas sólidas =====
+const coll = await page.evaluate(async () => {
+  const g = window.__game; const out = {};
+  g.actIndex = 0; g._goToTown();
+  await new Promise(r => setTimeout(r, 120));
+  const obs = g.zone.obstacles || [];
+  out.obstaclesCollected = obs.length >= 8; // casas, poço, sino, postes, forja, etc.
+  // maior obstáculo (uma casa)
+  const house = obs.slice().sort((a, b) => (b.hx * b.hz) - (a.hx * a.hz))[0];
+  out.hasBox = !!house && house.hx > 0.5 && house.hz > 0.5;
+  // 1) jogador no centro do obstáculo -> empurrado para fora da caixa
+  g.player.position.set(house.cx, 0, house.cz);
+  g._resolvePlayerCollision();
+  const dx = Math.abs(g.player.position.x - house.cx), dz = Math.abs(g.player.position.z - house.cz);
+  out.pushedOut = (dx > house.hx) || (dz > house.hz);
+  // 2) andar para o oeste ATRAVÉS do obstáculo: deve ser bloqueado (nunca chega ao outro lado)
+  g.input.shift = false; g.player.dead = false; g.player.attackTarget = null; g.player.interactTarget = null;
+  g.player.position.set(house.cx + house.hx + 3, 0, house.cz);
+  g.player.moveTarget = { x: house.cx - 12, y: 0, z: house.cz };
+  for (let i = 0; i < 80; i++) { g._updatePlayerMovement(0.05); g._resolvePlayerCollision(); }
+  out.didNotPassThrough = g.player.position.x >= house.cx; // não cruzou para o lado oeste
+  g.player.moveTarget = null;
+  return out;
+});
+console.log('✓ Colisão com estruturas:', JSON.stringify(coll));
+for (const [k, v] of Object.entries(coll)) if (v === false) throw new Error('colisão falhou em: ' + k);
+
 // Super Único: percorre zonas até achar um (45% por zona)
 const su = await page.evaluate(async () => {
   const g = window.__game;

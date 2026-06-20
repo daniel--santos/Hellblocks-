@@ -138,6 +138,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 ### Combate
 - Físico + elementos (fogo/gelo/raio/veneno/mágico) com **resistências** (cap 75%, +máx por afixo), **crítico**, **roubo de vida**, **esquiva**, **bloqueio**, e status: **lentidão / atordoamento / queimadura**.
 - **Seleção tolerante de inimigos**: cada monstro tem uma hitbox 3D generosa (não só os cubinhos do corpo), com fallback por proximidade do cursor; projéteis usam colisão por varredura (sem atravessar inimigos rápidos).
+- **Colisão com estruturas**: o jogador **não atravessa** os modelos sólidos (casas, árvores, poço, sino, postes, forja, barraca, fardos, cercas, muralhas, santuários, baús, rochas/pilares). As estruturas são marcadas como sólidas e viram caixas de colisão (AABB) ao carregar a zona; o movimento empurra o jogador para fora e **desliza** ao longo das paredes. Waypoints, portões/portais e NPCs continuam atravessáveis (para viajar, sair e interagir).
 - Skills: projéteis, multishot, novas, áreas no chão (meteoro/nevasca/armadilhas), raio em cadeia, investida, buffs e auras (sempre ativas, simplificado). **Flechas** (skills de arco e arqueiros) são projéteis **finos e alongados**, orientados na direção do voo; bolts mágicos giram.
 
 ## Estrutura
@@ -157,7 +158,7 @@ src/
 
 ```bash
 node test/logic.test.mjs   # 119 checagens de lógica pura (XP, loot, afixos, skills, dificuldade, soquetes, runewords, cubo, durabilidade, etéreo, superior, aura, sets, summons, quests, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests, lore, loja/reparo, merc+equip+aura, companheiros-alvo, respec, players X, soquetes, cubo, joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 

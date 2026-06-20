@@ -209,28 +209,30 @@ function buildPlainsVillage(group, rng) {
   makeHouseAt(group, 13, 8, 4, 3.6, { roof: 0x8a5630, face: Math.atan2(-13, -8) });
   makeHouseAt(group, -7, 12, 3.4, 3.4, { roof: 0x6a4a2a, face: Math.PI });
 
+  // marca estruturas como sólidas (colisão do jogador)
+  const solid = (m) => { m.userData.solid = true; return m; };
   // forja perto do ferreiro; barraca perto do mercador
-  const forge = makeForge(); forge.position.set(-7.2, 0, -6.2); group.add(forge);
-  const stall = makeStall(); stall.position.set(0, 0, 8.4); stall.rotation.y = Math.PI; group.add(stall);
+  const forge = solid(makeForge()); forge.position.set(-7.2, 0, -6.2); group.add(forge);
+  const stall = solid(makeStall()); stall.position.set(0, 0, 8.4); stall.rotation.y = Math.PI; group.add(stall);
 
   // poço e sino centrais (fora do ponto de spawn 0,0)
-  const well = makeWell(); well.position.set(-3.2, 0, 3.2); group.add(well);
-  const bell = makeBell(); bell.position.set(3.2, 0, 3.4); group.add(bell);
+  const well = solid(makeWell()); well.position.set(-3.2, 0, 3.2); group.add(well);
+  const bell = solid(makeBell()); bell.position.set(3.2, 0, 3.4); group.add(bell);
 
   // postes-lanterna (só 3 com luz real, p/ não estourar o limite de luzes)
   const lampSpots = [[6, 6, true], [-6, -6, true], [6, -2, true], [-2, 7, false], [7, 9, false], [-10, -2, false], [10, 4, false]];
-  for (const [x, z, lit] of lampSpots) { const lp = makeLamp(lit); lp.position.set(x, 0, z); group.add(lp); }
+  for (const [x, z, lit] of lampSpots) { const lp = solid(makeLamp(lit)); lp.position.set(x, 0, z); group.add(lp); }
 
   // fazenda cercada + fardos de feno num canto
-  const farm = makeFarm(); farm.position.set(13, 0, 13); group.add(farm);
-  for (const [x, z] of [[9.5, 13.5], [10.6, 13.5], [10, 12.5]]) { const hay = makeHay(); hay.position.set(x, 0, z); group.add(hay); }
+  const farm = solid(makeFarm()); farm.position.set(13, 0, 13); group.add(farm);
+  for (const [x, z] of [[9.5, 13.5], [10.6, 13.5], [10, 12.5]]) { const hay = solid(makeHay()); hay.position.set(x, 0, z); group.add(hay); }
 
   // animais decorativos (vaca + ovelha) perto da fazenda
   const cow = makeMonsterModel('cow', { color: 0xf2ece0, scale: 0.85 }).group; cow.position.set(8, 0, 11); cow.rotation.y = -0.8; group.add(cow);
   const sheep = makeMonsterModel('cow', { color: 0xeeeeee, scale: 0.7 }).group; sheep.position.set(6.5, 0, 13); sheep.rotation.y = 0.5; group.add(sheep);
 
   // cercas baixas em volta da praça
-  group.add(fenceSeg(-4.5, 6.5, 4, true), fenceSeg(4.5, 6.5, 4, true));
+  group.add(solid(fenceSeg(-4.5, 6.5, 4, true)), solid(fenceSeg(4.5, 6.5, 4, true)));
 
   // perímetro: árvores e arbustos (em vez de muralha de pedra)
   for (let i = 0; i < 22; i++) {
@@ -253,13 +255,13 @@ function buildPlainsVillage(group, rng) {
   }
 }
 
-function makeHouseAt(group, x, z, w, d, opts) { const h = makeHouse(w, d, opts); h.position.set(x, 0, z); group.add(h); }
+function makeHouseAt(group, x, z, w, d, opts) { const h = makeHouse(w, d, opts); h.position.set(x, 0, z); h.userData.solid = true; group.add(h); }
 
 // Decoração genérica (Atos II–IV): praça de pedregulho + muralha + props do bioma.
 function buildGenericTown(group, pal, rng) {
   const floor = box(40, 0.4, 40, 0x6a6a6a); floor.position.y = -0.2; floor.receiveShadow = true; group.add(floor);
   const plaza = box(14, 0.5, 14, 0x8a8a8a); plaza.position.y = -0.18; group.add(plaza);
-  for (let i = -20; i <= 20; i += 2) for (const [x, z] of [[i, -20], [i, 20], [-20, i], [20, i]]) { const w = box(2, 3, 2, pal.accent); w.position.set(x, 1.3, z); group.add(w); }
+  for (let i = -20; i <= 20; i += 2) for (const [x, z] of [[i, -20], [i, 20], [-20, i], [20, i]]) { const w = box(2, 3, 2, pal.accent); w.position.set(x, 1.3, z); w.userData.solid = true; group.add(w); }
   for (let i = 0; i < 12; i++) { const prop = makeProp(pal.prop, rng); const ang = rng.range(0, Math.PI * 2); const r = rng.range(12, 18); prop.position.set(Math.cos(ang) * r, 0, Math.sin(ang) * r); group.add(prop); }
 }
 

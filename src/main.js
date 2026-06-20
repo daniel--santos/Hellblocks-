@@ -167,6 +167,7 @@ class Game {
     this.zone = zone;
     this.zoneGroup = zone.group;
     this.engine.scene.add(zone.group);
+    this._collectObstacles(zone); // caixas de colisão das estruturas sólidas
     this.engine.setPalette(zone.palette);
     // portal de retorno (Town Portal) quando há ponto salvo e estamos na cidade
     if (zone.type === 'town' && this.returnPoint) {
@@ -191,6 +192,50 @@ class Game {
     if (zone.boss) this._spawnBoss(zone.boss);
     if (zone.superUnique) this._spawnSuperUnique(zone.superUnique);
     this.log('Entrando: ' + zone.name, 'magic');
+  }
+
+  // Coleta caixas de colisão (AABB no plano XZ) das estruturas marcadas userData.solid.
+  _collectObstacles(zone) {
+    const obs = [];
+    if (zone.group) {
+      zone.group.updateMatrixWorld(true);
+      const box = new THREE.Box3();
+      zone.group.traverse(o => {
+        if (!o.userData || !o.userData.solid) return;
+        box.setFromObject(o);
+        if (box.isEmpty() || !isFinite(box.min.x)) return;
+        const hx = (box.max.x - box.min.x) / 2, hz = (box.max.z - box.min.z) / 2;
+        if (hx < 0.05 && hz < 0.05) return;
+        obs.push({ cx: (box.min.x + box.max.x) / 2, cz: (box.min.z + box.max.z) / 2, hx, hz });
+      });
+    }
+    zone.obstacles = obs;
+  }
+
+  // Empurra o jogador para fora de qualquer estrutura sólida (colisão círculo-vs-AABB,
+  // com deslize ao longo das paredes). Chamado todo frame após o movimento.
+  _resolvePlayerCollision() {
+    const obs = this.zone && this.zone.obstacles;
+    if (!obs || !obs.length || !this.player) return;
+    const p = this.player.position;
+    const pr = 0.4; // raio do jogador
+    for (const o of obs) {
+      const nx = Math.max(o.cx - o.hx, Math.min(p.x, o.cx + o.hx));
+      const nz = Math.max(o.cz - o.hz, Math.min(p.z, o.cz + o.hz));
+      const dx = p.x - nx, dz = p.z - nz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= pr * pr) continue;
+      if (d2 > 1e-8) {
+        const d = Math.sqrt(d2), push = pr - d;
+        p.x += (dx / d) * push; p.z += (dz / d) * push;
+      } else {
+        // centro do jogador dentro da caixa: empurra pelo eixo de menor penetração
+        const penX = (o.hx + pr) - Math.abs(p.x - o.cx);
+        const penZ = (o.hz + pr) - Math.abs(p.z - o.cz);
+        if (penX < penZ) p.x += (p.x < o.cx ? -penX : penX);
+        else p.z += (p.z < o.cz ? -penZ : penZ);
+      }
+    }
   }
 
   _discoverWaypoint(it) {
@@ -1182,6 +1227,7 @@ class Game {
       this._updateBuffs();
       this._processHeldInput(dt);
       this._updatePlayerMovement(dt);
+      this._resolvePlayerCollision(); // não atravessa estruturas sólidas
       this.player.update(dt, this.time);
 
       // PERÍMETRO SEGURO: na cidade (zona safe) nenhum monstro pode existir/entrar

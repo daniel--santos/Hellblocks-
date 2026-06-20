@@ -345,6 +345,7 @@ export function makeWaypoint() {
   portal.position.y = 2.0; g.add(portal);
   const orb = box(0.46, 0.46, 0.46, 0xaaf0ff, 0x66ccff); orb.position.y = 3.35; g.add(orb);
   const light = new THREE.PointLight(0x55ccff, 1.6, 12); light.position.y = 2.2; g.add(light);
+  // waypoint NÃO é sólido: o jogador fica em cima dele para viajar (estilo D2)
   return g;
 }
 
@@ -362,6 +363,7 @@ export function makeShrine(color) {
   light.position.y = 2.0;
   g.add(base, pillar, crystal, light);
   g.userData.crystal = crystal;
+  g.userData.solid = true;
   return g;
 }
 
@@ -376,6 +378,7 @@ export function makeChest() {
   lock.position.set(0, 0.55, 0.38);
   g.add(body, lid, lock);
   g.userData.lid = lid;
+  g.userData.solid = true;
   return g;
 }
 
@@ -430,5 +433,6 @@ export function makeProp(type, rng) {
       break;
     }
   }
+  if (type !== 'wheat') g.userData.solid = true; // colisão: props sólidos bloqueiam o jogador (trigo não)
   return g;
 }
