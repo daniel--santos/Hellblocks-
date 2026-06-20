@@ -163,7 +163,11 @@ const refine = await page.evaluate(async () => {
   // Waypoint descoberto (entrou em cidade e selva)
   out.waypoints = g.waypointList.length;
 
-  // Town Portal
+  // Town Portal — verifica o MECANISMO do portal, não a sobrevivência ao loop de combate.
+  // Sem garantir as pré-condições, um pack que apareça perto da entrada pode matar o jogador
+  // durante o loop ao vivo, zerando g.running; aí _useTownPortal() vira no-op e o teste fica flaky.
+  g.player.dead = false; g.running = true; g.player.life = g.player.maxLife;
+  g.player.scrolls.tp = Math.max(1, g.player.scrolls.tp);
   g._useTownPortal();
   await new Promise(r => setTimeout(r, 250));
   out.tpToTown = g.zone.type === 'town' && !!g.returnPoint;
