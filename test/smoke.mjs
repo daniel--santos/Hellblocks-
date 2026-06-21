@@ -473,6 +473,40 @@ const d2stam = await page.evaluate(async () => {
 console.log('✓ Vigor (stamina):', JSON.stringify(d2stam));
 for (const [k, v] of Object.entries(d2stam)) if (v === false) throw new Error('vigor falhou em: ' + k);
 
+// ===== Troca de armas (weapon swap, W) + Call to Arms (ideia #7) =====
+const d2swap = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  p.swap = { weapon: null, shield: null }; p.activeWeaponSet = 0;
+  delete p.equipment.weapon; delete p.equipment.shield;
+
+  // conjunto I tem a Espada A; troca -> conjunto II (A vai p/ o swap, slot ativo fica vazio)
+  const wA = { id: 'wA', name: 'Espada A', slot: 'weapon', kind: 'sword', icon: '⚔️', identified: true, mods: {}, baseStats: { dmgMin: 5, dmgMax: 10 } };
+  p.equipment.weapon = wA;
+  g.swapWeapons();
+  out.swapToII = p.activeWeaponSet === 1 && p.swap.weapon === wA && !p.equipment.weapon;
+  // equipa Espada B no conjunto II e volta -> A ativa, B no swap
+  const wB = { id: 'wB', name: 'Espada B', slot: 'weapon', kind: 'sword', icon: '🗡️', identified: true, mods: {}, baseStats: { dmgMin: 8, dmgMax: 16 } };
+  p.equipment.weapon = wB;
+  g.swapWeapons();
+  out.swapBackToI = p.activeWeaponSet === 0 && p.equipment.weapon === wA && p.swap.weapon === wB;
+
+  // Call to Arms: trocar PARA a arma CtA concede "Ordens de Batalha" (buff de dano que persiste)
+  g.activeBuffs = []; // mede só o buff de Ordens de Batalha (buffs são transientes)
+  const cta = { id: 'cta', name: 'Arma CtA', slot: 'weapon', kind: 'sword', icon: '⚔️', identified: true, mods: {}, baseStats: { dmgMin: 5, dmgMax: 10 }, sockets: 4, socketed: ['amn', 'ral', 'dol', 'io'] };
+  p.equipment.weapon = cta; p.swap.weapon = null; p.activeWeaponSet = 0;
+  g.swapWeapons(); // -> conjunto II: CtA vai p/ o swap, slot ativo vazio (sem buff)
+  g.swapWeapons(); // -> conjunto I: CtA volta a ativa -> concede Ordens de Batalha
+  out.ctaBuff = g.activeBuffs.some(b => b.label === 'Ordens de Batalha' && b.until > g.time);
+  g._updateBuffs();
+  out.boDamageMul = Math.abs((p._damageMul || 1) - 1.25) < 0.02;
+
+  // limpa
+  g.activeBuffs = []; delete p.equipment.weapon; p.swap = { weapon: null, shield: null }; p.activeWeaponSet = 0; p.recompute();
+  return out;
+});
+console.log('✓ Weapon swap + CtA:', JSON.stringify(d2swap));
+for (const [k, v] of Object.entries(d2swap)) if (v === false) throw new Error('swap falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};
@@ -744,7 +778,8 @@ const sockets = await page.evaluate(async () => {
   // Cubo: 3 gemas iguais -> qualidade superior
   for (let i = 0; i < 3; i++) g.player.inventory.push({ id: 'cg' + i, name: 'Safira Lascada', rarity: 'normal', kind: 'gem', socketableId: 'sapphire_chipped', slot: 'gem', icon: '🔵', identified: true, mods: {} });
   g.cube = [];
-  g.player.inventory.filter(it => it.socketableId === 'sapphire_chipped').forEach(it => g.moveToCube(it));
+  // move SÓ as 3 gemas criadas (por id) — não filtra por socketableId (gemas avulsas de drop poluiriam o cubo)
+  ['cg0', 'cg1', 'cg2'].forEach(id => { const it = g.player.inventory.find(x => x.id === id); if (it) g.moveToCube(it); });
   const ok = g.cubeTransmute();
   out.cube = ok && g.cube.length === 1 && g.cube[0].socketableId === 'sapphire_flawed';
 

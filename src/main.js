@@ -23,7 +23,7 @@ import { SKILLS } from './data/skills.js';
 import * as Combat from './systems/combat.js';
 import { Mercenary, mercForAct, hireCost, MERC_TYPES } from './entities/mercenary.js';
 import { Summon } from './entities/summon.js';
-import { insertIntoSocket, emptySockets, canHaveSockets, maxSocketsForItem } from './systems/sockets.js';
+import { insertIntoSocket, emptySockets, canHaveSockets, maxSocketsForItem, detectRuneword } from './systems/sockets.js';
 import { transmute } from './systems/cube.js';
 import { saveGame, loadSaveData, clearSave, listSaves } from './systems/save.js';
 import { generateShopStock, gambleRoll, buyPrice, sellPrice, gamblePrice, CONSUMABLE_PRICES } from './systems/economy.js';
@@ -121,6 +121,7 @@ class Game {
       inventory: data.inventory || [], equipment: data.equipment || {},
       beltSkills: data.beltSkills || [], rightSkill: data.rightSkill || null, leftSkill: data.leftSkill || 'attack', activeAura: data.activeAura || null,
       questBonus: data.questBonus || { resAll: 0, lifeFlat: 0 }, // bônus permanentes de quest (saves antigos = 0)
+      swap: data.swap || { weapon: null, shield: null }, activeWeaponSet: data.activeWeaponSet || 0,
     });
     p.recompute(); p.life = p.maxLife; p.mana = p.maxMana; p.stamina = p.maxStamina;
     this.engine.scene.add(p.mesh);
@@ -609,6 +610,28 @@ class Game {
     if (this.player.rightSkill && !this.player.beltSkills.includes(this.player.rightSkill)) this.player.rightSkill = this.player.beltSkills[0];
   }
 
+  // Troca de armas (Weapon Swap, tecla W): alterna entre o conjunto I e II de arma/escudo.
+  // Call to Arms: trocar PARA uma arma com CtA concede "Ordens de Batalha" (buff que persiste).
+  swapWeapons() {
+    const p = this.player; if (!p) return;
+    const e = p.equipment; const sw = p.swap = p.swap || { weapon: null, shield: null };
+    [e.weapon, sw.weapon] = [sw.weapon || null, e.weapon || null];
+    [e.shield, sw.shield] = [sw.shield || null, e.shield || null];
+    if (!e.weapon) delete e.weapon;
+    if (!e.shield) delete e.shield;
+    p.activeWeaponSet = p.activeWeaponSet ? 0 : 1;
+    p.recompute();
+    this._refreshBelt();
+    if (e.weapon && detectRuneword(e.weapon)?.id === 'call_to_arms') {
+      this.activeBuffs = this.activeBuffs.filter(b => b.label !== 'Ordens de Batalha');
+      this.activeBuffs.push({ type: 'damage', mult: 1.25, until: this.time + 30, label: 'Ordens de Batalha' });
+      this.log('⚔️ Ordens de Batalha! (Call to Arms) — +25% dano por 30s.', 'set');
+    }
+    this.log(`Conjunto de armas ${p.activeWeaponSet + 1}.`, 'magic');
+    this.save();
+    return p.activeWeaponSet;
+  }
+
   // alterna correr/andar (Vigor estilo D2): andar não gasta vigor e regenera melhor
   toggleRun() {
     if (!this.player) return;
@@ -712,7 +735,7 @@ class Game {
     i.on('3', () => this._selectBelt(2));
     i.on('4', () => this._selectBelt(3));
     i.on('q', () => this._usePotion('life'));
-    i.on('w', () => this._usePotion('rejuv'));
+    i.on('w', () => this.player && this.swapWeapons()); // W = troca de armas (D2); rejuv fica no R
     i.on('e', () => this._usePotion('mana'));
     i.on('r', () => this._usePotion('rejuv'));
     i.on('c', () => this.player && this.ui.toggleChar(this));

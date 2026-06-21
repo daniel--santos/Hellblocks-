@@ -73,6 +73,12 @@ export class UI {
     this.staminaBar.appendChild(this.staminaLabel);
     this.el.hud.appendChild(this.staminaBar);
 
+    // indicador do conjunto de armas (weapon swap, tecla W) — clicável p/ trocar
+    this.weaponSetEl = document.createElement('div');
+    this.weaponSetEl.id = 'weapon-set';
+    this.weaponSetEl.style.cssText = 'position:absolute;bottom:118px;left:calc(50% + 100px);font-size:11px;color:#c8aa6e;background:rgba(0,0,0,0.6);border:1px solid #6a5a2a;border-radius:4px;padding:1px 6px;pointer-events:auto;cursor:pointer;text-shadow:0 0 2px #000;';
+    this.el.hud.appendChild(this.weaponSetEl);
+
     // vida do mercenário
     this.mercEl = document.createElement('div');
     this.mercEl.id = 'merc-bar';
@@ -323,7 +329,7 @@ export class UI {
   renderPotionBelt(game) {
     const p = game.player;
     this.potionBelt.innerHTML = '';
-    const defs = [['life', '🧪', '#ff5040', 'Q'], ['rejuv', '💜', '#b060ff', 'W'], ['mana', '🔵', '#5080ff', 'E']];
+    const defs = [['life', '🧪', '#ff5040', 'Q'], ['rejuv', '💜', '#b060ff', 'R'], ['mana', '🔵', '#5080ff', 'E']];
     const cap = p.beltCapacity ? p.beltCapacity() : 4; // capacidade por tipo (fileiras do cinto)
     for (const [kind, icon, color, key] of defs) {
       const n = p.potions[kind] || 0;
@@ -346,6 +352,12 @@ export class UI {
     this.staminaFill.style.width = (pct * 100) + '%';
     this.staminaFill.style.opacity = running ? '1' : '0.45';
     this.staminaLabel.textContent = `${running ? '🏃' : '🚶'} ${Math.round(p.stamina)}/${p.maxStamina}`;
+    // indicador de conjunto de armas (a arma ativa é sempre equipment.weapon; swap guarda a inativa)
+    this.weaponSetEl.onclick = () => game.swapWeapons();
+    this.weaponSetEl.textContent = `⚔ ${p.activeWeaponSet ? 'II' : 'I'} (W)`;
+    const a = p.equipment.weapon ? p.equipment.weapon.name : 'sem arma';
+    const b = (p.swap && p.swap.weapon) ? p.swap.weapon.name : 'vazio';
+    this.weaponSetEl.title = `Ativa: ${a} · Swap: ${b}`;
   }
 
   drawMinimap(game) {

@@ -51,6 +51,8 @@ export class Player {
     this.parts = model.parts;
 
     this.running = true;            // correr (gasta vigor) vs andar — alterna na barra de vigor (HUD)
+    this.swap = { weapon: null, shield: null }; // 2º conjunto de armas (weapon swap, tecla W)
+    this.activeWeaponSet = 0;       // 0 = conjunto I, 1 = conjunto II
     this.bonuses = {};
     this.derived = {};
     this.recompute();

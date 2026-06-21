@@ -276,6 +276,11 @@ import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';
 ok('runewords novos existem (leaf/malice/smoke)', ['leaf', 'malice', 'smoke'].every(id => RUNEWORDS.some(r => r.id === id)));
 const leaf = { slot: 'weapon', kind: 'staff', mods: {}, sockets: 2, socketed: ['tir', 'ral'] };
 ok('runeword Leaf detectado (Tir+Ral)', detectRuneword(leaf)?.name === 'Leaf');
+// Call to Arms (ideia #7): runeword de arma para o weapon swap
+ok('runeword Call to Arms existe', RUNEWORDS.some(r => r.id === 'call_to_arms'));
+const cta = { slot: 'weapon', kind: 'sword', mods: {}, sockets: 4, socketed: ['amn', 'ral', 'dol', 'io'] };
+ok('Call to Arms detectado (Amn+Ral+Dol+Io)', detectRuneword(cta)?.id === 'call_to_arms');
+ok('Call to Arms dá +dano físico e +todas skills', getItemMods(cta).physDamagePct > 0 && getItemMods(cta).allSkills >= 1);
 ok('set "Pele do Lobo" tem bônus', !!(SB2['Pele do Lobo'] && SB2['Pele do Lobo'][2]));
 ok('há >=6 uniques e >=4 set items', UNIQUES.length >= 6 && SETS.length >= 4);
 

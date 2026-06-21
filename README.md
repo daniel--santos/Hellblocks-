@@ -41,7 +41,8 @@ Abra **http://localhost:5173** no navegador (Chrome/Edge/Firefox).
 | Trocar a skill da direita | **1 · 2 · 3 · 4** (clique na barra) |
 | Atribuir skill ao **clique esquerdo** | **Shift + clique** na barra |
 | **Players X** (ciclar densidade/poder) | **X** |
-| Poção de vida · **rejuvenescimento** · mana | **Q** · **W/R** · **E** |
+| Poção de vida · **rejuvenescimento** · mana | **Q** · **R** · **E** |
+| **Troca de armas** (Weapon Swap: conjunto I ↔ II) | **W** (ou clique no ⚔ I/II) |
 | **Pergaminho de Portal** (volta à cidade e abre retorno) | **F** |
 | **Waypoints** (teleporte entre áreas descobertas) | **Z** |
 | **Cubo Horadric** (transmutar) | **H** |
@@ -95,7 +96,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
   - **35 gemas** (7 tipos × 5 qualidades) e **17 runas**, que caem dos monstros (runas altas via Cubo).
   - **Joias (Jewels)** — item encravável **com afixos próprios** (mágicas/raras com prefixos+sufixos), que dão o **mesmo bônus em arma ou armadura** (encravam em qualquer soquete). Raras caem para identificar.
   - **Facetas Arco-Íris** (joias **únicas** de Fogo/Gelo/Raio): dano + resistência do elemento e **+1% ao máx. de todas as resistências**.
-  - **14 Runewords**: sequências exatas de runas em itens com soquetes certos dão bônus poderosos (Steel, Stealth, Lore, Ancient's Pledge, Spirit, Insight, Leaf, Malice, Smoke, **Zephyr**, **Rhyme**, **Black**, **Wealth**, **Heart of the Oak**).
+  - **15 Runewords**: sequências exatas de runas em itens com soquetes certos dão bônus poderosos (Steel, Stealth, Lore, Ancient's Pledge, Spirit, Insight, Leaf, Malice, Smoke, **Zephyr**, **Rhyme**, **Black**, **Wealth**, **Heart of the Oak**, **Call to Arms**).
 - **Cubo Horadric** com receitas de transmutação:
   - 3 gemas iguais → gema de qualidade superior
   - 3 runas iguais → runa superior
@@ -129,6 +130,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Poções**: vida, mana e **rejuvenescimento** (restaura vida + mana). Caem de monstros e **auto-preenchem o cinto** ao serem coletadas.
 - **Cinto de poções com fileiras (estilo D2)**: a **capacidade por tipo** depende do **cinto equipado** — sem cinto cabe 1 fileira (4 por tipo); **Faixa** = 2 fileiras (8), **Cinto** = 3 (12), **Cinto de Guerra** = 4 (16). O HUD mostra `atual/capacidade` e a coleta/compra respeita o limite.
 - **Vigor (Stamina) + correr/andar (estilo D2)**: barra de **vigor** no HUD que **drena ao correr** (movendo) e **regenera** parado/andando; com vigor **esgotado** você é forçado a **andar** (55% da velocidade). **Clique na barra** para alternar correr/andar (andar poupa vigor). O máximo de vigor sobe com **vitalidade**, **nível** e o afixo **+Vigor**.
+- **Troca de armas (Weapon Swap, tecla W)**: dois conjuntos alternáveis de arma/escudo (I ↔ II), com indicador no HUD. Runeword **Call to Arms** (Amn+Ral+Dol+Io): trocar **para** uma arma com CtA concede **Ordens de Batalha** (+25% de dano por 30s) que **persiste ao trocar de volta** — exatamente o truque do D2.
 - **Quests exclusivas por ato com recompensas icônicas** (estilo Diablo II): cada um dos 4 atos tem 3 quests nomeadas — **Ato I**: O Covil do Mal (+1 skill), Ferramentas do Ofício (Larzuk soqueta 1 item), As Irmãs do Massacre (+1 skill, +ouro); **Ato II**: A Toca de Radament (+1 skill), O Santuário Arcano (Anya: **+10% a todas as resistências, permanente**), As Sete Tumbas; **Ato III**: O Tomo de Lam Esen (**+5 atributos**), O Pássaro Dourado (**+20 de vida, permanente**), O Guardião; **Ato IV**: O Anjo Caído/Izual (**+2 skills**), A Forja do Inferno (soqueta 1 item), O Fim do Terror. Os bônus permanentes (resist./vida) e soquetes são salvos no personagem. Log de quests na tecla **J**.
 - **Telas de lore por ato**: ao entrar num novo ato, uma narrativa curta ambienta a história (estilo D2).
 - **Penalidade de morte**: perde 10% do ouro; e **perde XP** em Pesadelo/Inferno (sem descer de nível), como no D2. O Cow Level dá um charm garantido como recompensa secreta.
@@ -162,8 +164,8 @@ src/
 ## Testes
 
 ```bash
-node test/logic.test.mjs   # 156 checagens de lógica pura (XP, loot, afixos, procs de conjuração, vigor, skills, dificuldade, soquetes, runewords, cubo c/ craft de cravejados, cinto de poções por fileiras, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), procs (conjurar ao acertar/ser atingido), cinto de poções (fileiras/capacidade), vigor (drena/regenera/anda-devagar/toggle), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo (incl. cravejados/craft), joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/logic.test.mjs   # 159 checagens de lógica pura (XP, loot, afixos, procs de conjuração, vigor, skills, dificuldade, soquetes, runewords + Call to Arms, cubo c/ craft de cravejados, cinto de poções por fileiras, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), procs (conjurar ao acertar/ser atingido), cinto de poções (fileiras/capacidade), vigor (drena/regenera/anda-devagar/toggle), troca de armas + Call to Arms (Ordens de Batalha), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo (incl. cravejados/craft), joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 

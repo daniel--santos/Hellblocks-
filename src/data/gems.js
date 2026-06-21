@@ -87,6 +87,9 @@ export const RUNEWORDS = [
     mods: { magicFind: 100, dex: 10, defenseFlat: 30 } },
   { id: 'hoto', name: 'Heart of the Oak', runes: ['dol', 'ort', 'amn', 'lum'], sockets: 4, targets: ['weapon'],
     mods: { allSkills: 3, fcr: 0.40, resAll: 40, vit: 10, manaFlat: 100 } },
+  // Call to Arms: arma cujo swap concede "Ordens de Batalha" (buff de dano que persiste ao trocar de volta).
+  { id: 'call_to_arms', name: 'Call to Arms', runes: ['amn', 'ral', 'dol', 'io'], sockets: 4, targets: ['weapon'],
+    mods: { allSkills: 1, lifeFlat: 40, manaFlat: 30, attackRating: 80, physDamagePct: 0.40 } },
 ];
 
 export function gemList() { return Object.values(GEMS); }
