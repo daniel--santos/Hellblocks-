@@ -554,6 +554,40 @@ const d2merc = await page.evaluate(async () => {
 console.log('✓ Auras do mercenário:', JSON.stringify(d2merc));
 for (const [k, v] of Object.entries(d2merc)) if (v === false) throw new Error('aura-merc falhou em: ' + k);
 
+// ===== Inventário em GRADE WxH: footprint + capacidade por área + render com span (ideia #10) =====
+const d2grid = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const L = await import('http://localhost:5173/src/systems/loot.js');
+  const savedInv = p.inventory;
+  out.footprint = L.itemGridSize({ slot: 'body' }).w === 2 && L.itemGridSize({ slot: 'ring' }).w === 1;
+
+  // capacidade por ÁREA: enche o inventário em células -> compra/pegar recusada
+  p.inventory = [];
+  for (let i = 0; i < L.INV_MAX_CELLS; i++) p.inventory.push({ id: 'r' + i, name: 'Anel', slot: 'ring', kind: 'ring', icon: '💍', rarity: 'normal', identified: true, mods: {} });
+  out.full = !g._invHasRoom({ slot: 'ring', kind: 'ring' });
+  p.gold = 99999; const before = p.inventory.length;
+  g.buyItem({ _stock: [] }, { id: 'sw', name: 'Espada', slot: 'weapon', kind: 'sword', icon: '⚔️', rarity: 'normal', identified: true, mods: {} });
+  out.buyBlockedWhenFull = p.inventory.length === before;
+
+  // libera espaço -> cabe de novo
+  p.inventory = p.inventory.slice(0, 10);
+  out.roomAfterClear = g._invHasRoom({ slot: 'body' });
+
+  // a UI renderiza cada item ocupando seu footprint (grid-column/row span)
+  p.inventory.push({ id: 'bd', name: 'Peito', slot: 'body', kind: 'body', icon: '🧥', rarity: 'normal', identified: true, mods: {} });
+  g.ui.renderInventory(g);
+  const items = g.ui.el.invPanel.querySelectorAll('.inv-item');
+  out.renders = items.length === p.inventory.length;
+  const bodyEl = [...items].find(n => n.title === 'Peito');
+  out.spans = !!bodyEl && /span 2/.test(bodyEl.style.gridColumn) && /span 3/.test(bodyEl.style.gridRow);
+
+  // restaura
+  p.inventory = savedInv; p.recompute();
+  return out;
+});
+console.log('✓ Inventário em grade:', JSON.stringify(d2grid));
+for (const [k, v] of Object.entries(d2grid)) if (v === false) throw new Error('grade falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};

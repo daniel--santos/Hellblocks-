@@ -270,6 +270,18 @@ ok('cintos têm fileiras crescentes', beltRowsFor('sash') < beltRowsFor('belt') 
 // ---- Vigor (stamina) — ideia #6 ----
 ok('afixo +Vigor (staminaFlat) existe', AFFIXES.suffix.some(a => a.stat === 'staminaFlat'));
 
+// ---- Inventário em GRADE WxH (ideia #10) ----
+import { itemGridSize, invFootprintCells, inventoryHasRoom, INV_MAX_CELLS } from '../src/systems/loot.js';
+ok('anel ocupa 1x1', itemGridSize({ slot: 'ring', kind: 'ring' }).w === 1 && itemGridSize({ slot: 'ring' }).h === 1);
+ok('peito ocupa 2x3', itemGridSize({ slot: 'body' }).w === 2 && itemGridSize({ slot: 'body' }).h === 3);
+ok('arco ocupa 2x4', itemGridSize({ slot: 'weapon', kind: 'bow' }).w === 2 && itemGridSize({ slot: 'weapon', kind: 'bow' }).h === 4);
+ok('espada ocupa 1x3', itemGridSize({ slot: 'weapon', kind: 'sword' }).w === 1 && itemGridSize({ slot: 'weapon', kind: 'sword' }).h === 3);
+ok('charm grande ocupa 1x2', itemGridSize({ slot: 'charm', charmSize: 2 }).w === 1 && itemGridSize({ slot: 'charm', charmSize: 2 }).h === 2);
+ok('soma de células de footprint', invFootprintCells([{ slot: 'ring' }, { slot: 'body' }]) === 1 + 6);
+ok('cabe item quando há espaço', inventoryHasRoom([], { slot: 'body' }) === true);
+ok('capacidade por ÁREA bloqueia além de INV_MAX_CELLS', !inventoryHasRoom(Array.from({ length: INV_MAX_CELLS }, () => ({ slot: 'ring' })), { slot: 'ring' }));
+ok('INV_MAX_CELLS é 60', INV_MAX_CELLS === 60);
+
 // ---- Conteúdo novo: runewords / sets / uniques ----
 import { RUNEWORDS } from '../src/data/gems.js';
 import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';

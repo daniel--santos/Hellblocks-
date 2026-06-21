@@ -8,6 +8,29 @@ import { GEM_QUALITIES, runeList } from '../data/gems.js';
 let _uid = 1;
 export function nextItemId() { return 'it_' + (_uid++); }
 
+// ---------- Inventário em GRADE (estilo D2): itens ocupam WxH células ----------
+export const INV_MAX_CELLS = 60;        // capacidade do inventário em células (puzzle de espaço)
+// Tamanho do item na grade, por slot/tipo (anel/gema 1x1, arma 1x3/2x4, peito 2x3, etc.).
+export function itemGridSize(item) {
+  if (!item) return { w: 1, h: 1 };
+  if (item.slot === 'charm') return { w: 1, h: Math.min(3, item.charmSize || 1) };
+  if (item.kind === 'gem' || item.kind === 'rune' || item.slot === 'ring' || item.slot === 'amulet' || item.slot === 'jewel') return { w: 1, h: 1 };
+  if (item.slot === 'weapon') return (item.kind === 'bow' || item.kind === 'staff') ? { w: 2, h: 4 } : { w: 1, h: 3 };
+  if (item.slot === 'body' || item.slot === 'shield') return { w: 2, h: 3 };
+  if (item.slot === 'helm' || item.slot === 'gloves' || item.slot === 'boots') return { w: 2, h: 2 };
+  if (item.slot === 'belt') return { w: 2, h: 1 };
+  return { w: 1, h: 1 };
+}
+// Soma das células ocupadas por uma lista de itens.
+export function invFootprintCells(items) {
+  let n = 0; for (const it of items || []) { const s = itemGridSize(it); n += s.w * s.h; } return n;
+}
+// Cabe mais um item? (capacidade por ÁREA de células, não por contagem)
+export function inventoryHasRoom(items, item, maxCells = INV_MAX_CELLS) {
+  const s = itemGridSize(item);
+  return invFootprintCells(items) + s.w * s.h <= maxCells;
+}
+
 const RARE_NAMES_A = ['Garra', 'Presságio', 'Maldição', 'Fúria', 'Sopro', 'Eco', 'Lâmina', 'Cinza', 'Lamento', 'Crânio'];
 const RARE_NAMES_B = ['do Abismo', 'do Crepúsculo', 'da Fome', 'das Sombras', 'do Vazio', 'da Praga', 'do Trovão', 'do Gelo Eterno'];
 

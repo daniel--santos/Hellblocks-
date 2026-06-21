@@ -13,7 +13,7 @@ import { ACTS, COW_LEVEL, getAct, ACT_LORE } from './data/acts.js';
 import { DIFFICULTIES, DIFFICULTY_LIST } from './systems/difficulty.js';
 import { buildTown } from './world/town.js';
 import { buildActOverworld, buildBossArena, buildCowLevel } from './world/generator.js';
-import { rollDrops, generateItem, nextItemId, makeUnique, sortInventoryItems } from './systems/loot.js';
+import { rollDrops, generateItem, nextItemId, makeUnique, sortInventoryItems, inventoryHasRoom } from './systems/loot.js';
 import { getInsertable } from './data/gems.js';
 import { monsterBaseXP, xpLevelPenalty, xpToReach } from './systems/leveling.js';
 import { buildActQuests } from './data/quests.js';
@@ -521,14 +521,15 @@ class Game {
           this.player.scrolls[d.scroll] = Math.min(20, (this.player.scrolls[d.scroll] || 0) + 1);
           this.log(`Pergaminho de ${d.scroll === 'id' ? 'Identificação' : 'Portal'} coletado`);
         } else if (d.type === 'gem' || d.type === 'rune') {
-          if (this.player.inventory.length >= 40) { this.log('Inventário cheio!', 'dmg'); continue; }
           const def = getInsertable(d.id);
           if (def) {
-            this.player.inventory.push({ id: nextItemId(), name: def.name, icon: def.icon, rarity: 'normal', identified: true, kind: def.kind, socketableId: def.id, slot: def.kind, reqLevel: def.reqLevel || 1, mods: {} });
+            const gemItem = { id: nextItemId(), name: def.name, icon: def.icon, rarity: 'normal', identified: true, kind: def.kind, socketableId: def.id, slot: def.kind, reqLevel: def.reqLevel || 1, mods: {} };
+            if (!this._invHasRoom(gemItem)) { this.log('Inventário cheio!', 'dmg'); continue; }
+            this.player.inventory.push(gemItem);
             this.log(`Você pegou: ${def.name}`);
           }
         } else if (d.type === 'item') {
-          if (this.player.inventory.length >= 40) { this.log('Inventário cheio!', 'dmg'); continue; }
+          if (!this._invHasRoom(d.item)) { this.log('Inventário cheio!', 'dmg'); continue; }
           this.player.inventory.push(d.item);
           this.log(`Você pegou: ${d.item.name}`, RARITY[d.item.rarity].cssClass);
         }
@@ -1048,10 +1049,13 @@ class Game {
       this.player.scrolls[kind] = Math.min(20, (this.player.scrolls[kind] || 0) + 1);
     }
   }
+  // cabe mais um item no inventário em grade? (capacidade por área de células, estilo D2)
+  _invHasRoom(item) { return inventoryHasRoom(this.player.inventory, item); }
+
   buyItem(npc, item) {
     const price = buyPrice(item);
     if (this.player.gold < price) { this.log('Ouro insuficiente.', 'dmg'); return; }
-    if (this.player.inventory.length >= 40) { this.log('Inventário cheio!', 'dmg'); return; }
+    if (!this._invHasRoom(item)) { this.log('Inventário cheio!', 'dmg'); return; }
     this.player.gold -= price;
     this.player.inventory.push(item);
     npc._stock = npc._stock.filter(i => i !== item);
@@ -1068,9 +1072,9 @@ class Game {
   gamble() {
     const price = gamblePrice(this.player.level);
     if (this.player.gold < price) { this.log('Ouro insuficiente para apostar.', 'dmg'); return null; }
-    if (this.player.inventory.length >= 40) { this.log('Inventário cheio!', 'dmg'); return null; }
-    this.player.gold -= price;
     const item = gambleRoll(this.player.level, this.rng);
+    if (!this._invHasRoom(item)) { this.log('Inventário cheio!', 'dmg'); return null; }
+    this.player.gold -= price;
     this.player.inventory.push(item);
     this.log(`🎲 Apostou e ganhou: ${item.name}${item.identified === false ? ' (não identificado)' : ''}!`, RARITY[item.rarity].cssClass);
     return item;
@@ -1129,7 +1133,7 @@ class Game {
     if (i >= 0) { this.player.inventory.splice(i, 1); this.cube.push(item); }
   }
   moveFromCube(item) {
-    if (this.player.inventory.length >= 40) { this.log('Inventário cheio.', 'dmg'); return; }
+    if (!this._invHasRoom(item)) { this.log('Inventário cheio.', 'dmg'); return; }
     const i = this.cube.indexOf(item);
     if (i >= 0) { this.cube.splice(i, 1); this.player.inventory.push(item); this.player.recompute(); }
   }
@@ -1164,7 +1168,7 @@ class Game {
     this.player.recompute();
   }
   moveFromStash(item) {
-    if (this.player.inventory.length >= 40) { this.log('Inventário cheio.', 'dmg'); return; }
+    if (!this._invHasRoom(item)) { this.log('Inventário cheio.', 'dmg'); return; }
     for (const tab of this.stashTabs) {
       const i = tab.indexOf(item);
       if (i >= 0) { tab.splice(i, 1); this.player.inventory.push(item); return; }

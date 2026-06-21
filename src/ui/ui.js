@@ -5,7 +5,7 @@ import { DIFFICULTY_LIST } from '../systems/difficulty.js';
 import { SKILLS, skillsForTree } from '../data/skills.js';
 import { TREE_NAMES } from '../data/classes.js';
 import { canLearn } from '../systems/skilltree.js';
-import { itemTooltipLines } from '../systems/loot.js';
+import { itemTooltipLines, itemGridSize, invFootprintCells, INV_MAX_CELLS } from '../systems/loot.js';
 import { RARITY } from '../data/items.js';
 import { MAX_LEVEL } from '../systems/leveling.js';
 import { buyPrice, sellPrice, gamblePrice, CONSUMABLE_PRICES } from '../systems/economy.js';
@@ -525,18 +525,18 @@ export class UI {
       html += `<div class="equip-slot" data-slot="${slot}">${it ? `<span class="eq-icon">${it.icon}</span>` : label}</div>`;
     }
     html += `</div><hr style="border-color:#2a2418;margin:8px 0">`;
+    // GRADE estilo D2: cada item ocupa WxH células (footprint por slot); CSS empacota (dense).
     html += `<div class="inv-grid">`;
-    for (let i = 0; i < 40; i++) {
-      const it = p.inventory[i];
-      if (it) {
-        const r = RARITY[it.rarity];
-        const unid = it.identified === false ? ' style="filter:grayscale(0.6);outline:1px dashed #888"' : '';
-        const charm = it.slot === 'charm' ? ' title="Charm (bônus passivo)"' : '';
-        const sock = it.sockets ? `<span style="position:absolute;bottom:0;right:1px;font-size:9px;color:#9df">◆${it.socketed?.length || 0}/${it.sockets}</span>` : '';
-        html += `<div class="inv-cell" data-cell="${i}"><div class="inv-item ${r.cssClass}${it.slot === 'charm' ? ' charm' : ''}" draggable="true" data-idx="${i}"${unid}${charm}>${it.icon}${sock}</div></div>`;
-      } else html += `<div class="inv-cell" data-cell="${i}"></div>`;
-    }
-    html += `</div><p style="font-size:11px;color:#8a7a5a;margin-top:8px">Clique: equipar / identificar (se não-ID). Arraste para reordenar, soltar num slot p/ equipar, ou na zona acima p/ jogar no chão. Charms dão bônus no inventário.</p>`;
+    p.inventory.forEach((it, i) => {
+      const r = RARITY[it.rarity];
+      const sz = itemGridSize(it);
+      const unid = it.identified === false ? 'filter:grayscale(0.6);outline:1px dashed #888;' : '';
+      const sock = it.sockets ? `<span class="inv-sock">◆${it.socketed?.length || 0}/${it.sockets}</span>` : '';
+      html += `<div class="inv-item ${r.cssClass}${it.slot === 'charm' ? ' charm' : ''}" draggable="true" data-idx="${i}" style="grid-column:span ${sz.w};grid-row:span ${sz.h};${unid}" title="${it.name}">${it.icon}${sock}</div>`;
+    });
+    html += `</div>`;
+    const usedCells = invFootprintCells(p.inventory);
+    html += `<p style="font-size:11px;color:#8a7a5a;margin-top:8px">Espaço: <b style="color:${usedCells >= INV_MAX_CELLS ? '#e66' : '#9c8'}">${usedCells}/${INV_MAX_CELLS}</b> células. Clique: equipar / identificar. Arraste sobre outro item p/ trocar, num slot p/ equipar, ou na zona acima p/ jogar no chão.</p>`;
     this.el.invPanel.innerHTML = html;
 
     this.el.invPanel.querySelectorAll('.inv-item').forEach(node => {
@@ -579,16 +579,26 @@ export class UI {
         this.hideTooltip();
       };
       node.ondragend = () => { this._dragItem = null; };
-    });
-    this.el.invPanel.querySelectorAll('.inv-cell').forEach(cell => {
-      cell.ondragover = (ev) => ev.preventDefault();
-      cell.ondrop = (ev) => {
-        ev.preventDefault();
+      // soltar sobre OUTRO item troca as posições (reordenar na grade)
+      node.ondragover = (ev) => ev.preventDefault();
+      node.ondrop = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
         if (this._dragItem == null) return;
-        game.moveInventoryItem(this._dragFrom, +cell.dataset.cell);
+        game.moveInventoryItem(this._dragFrom, +node.dataset.idx);
         this._dragItem = null; this.renderInventory(game);
       };
     });
+    // soltar no espaço vazio da grade manda o item para o fim
+    const gridEl = this.el.invPanel.querySelector('.inv-grid');
+    if (gridEl) {
+      gridEl.ondragover = (ev) => ev.preventDefault();
+      gridEl.ondrop = (ev) => {
+        ev.preventDefault();
+        if (this._dragItem == null) return;
+        game.moveInventoryItem(this._dragFrom, p.inventory.length);
+        this._dragItem = null; this.renderInventory(game);
+      };
+    }
     this.el.invPanel.querySelectorAll('.equip-slot').forEach(node => {
       node.ondragover = (ev) => ev.preventDefault();
       node.ondrop = (ev) => {
