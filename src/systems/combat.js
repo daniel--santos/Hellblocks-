@@ -38,21 +38,24 @@ function arrowMesh(element) {
 
 // ---------- Conjuração ----------
 // Retorna true se conjurou (gastou mana / iniciou ação).
-export function castSkill(game, caster, skillId, targetPoint) {
+export function castSkill(game, caster, skillId, targetPoint, opts = {}) {
   const sk = SKILLS[skillId];
   if (!sk) return false;
-  const stats = skillStats(caster, skillId);
+  // procs (opts.level/opts.free): castam num nível FIXO (sem ranks/sinergias do caster) e de graça
+  const stats = opts.level != null ? sk.getStats(opts.level, {}) : skillStats(caster, skillId);
   if (!stats) return false;
 
-  // cooldown
+  // cooldown (procs ignoram)
   caster._cooldowns = caster._cooldowns || {};
-  if (sk.cooldown && (caster._cooldowns[skillId] || 0) > 0) return false;
+  if (!opts.free && sk.cooldown && (caster._cooldowns[skillId] || 0) > 0) return false;
 
-  // mana
-  const mana = stats.mana || 0;
-  if (caster.mana < mana) return false;
-  caster.mana -= mana;
-  if (sk.cooldown) caster._cooldowns[skillId] = sk.cooldown;
+  // mana (procs são grátis)
+  if (!opts.free) {
+    const mana = stats.mana || 0;
+    if (caster.mana < mana) return false;
+    caster.mana -= mana;
+    if (sk.cooldown) caster._cooldowns[skillId] = sk.cooldown;
+  }
 
   const origin = caster.position.clone();
   origin.y = 1.2;
@@ -350,6 +353,20 @@ function meleeHit(game, caster, range, damage, element, opts) {
   if (best) applyDamage(game, best, damage, element, caster, opts);
 }
 
+// Procs: "X% de conjurar [skill] ao acertar/ser atingido" (afixos estilo D2 em caster.procs).
+// Guarda de reentrância (_inProc) evita que uma proc dispare outra (loop infinito).
+export function triggerProcs(game, caster, trigger, targetPos) {
+  const procs = caster && caster.procs;
+  if (!procs || !procs.length || game._inProc) return;
+  game._inProc = true;
+  for (const pr of procs) {
+    if (pr.trigger !== trigger) continue;
+    if (!game.rng.chance(pr.chance)) continue;
+    castSkill(game, caster, pr.skill, targetPos, { free: true, level: pr.level });
+  }
+  game._inProc = false;
+}
+
 // ---------- Dano ----------
 export function applyDamage(game, monster, amount, element, source, opts = {}) {
   if (monster.dead) return 0;
@@ -398,6 +415,8 @@ export function applyDamage(game, monster, amount, element, source, opts = {}) {
       monster.bleedUntil = game.time + 4;
       monster.bleedDps = Math.max(2, Math.round((source.derived?.weaponMax || 6) * 0.5));
     }
+    // Proc "ao acertar": chance de conjurar uma skill no alvo
+    triggerProcs(game, source, 'strike', monster.position);
   }
 
   if (opts.slow) { monster.slowUntil = game.time + 1.5; monster.slowAmt = opts.slow; }
@@ -461,6 +480,11 @@ export function applyDamageToPlayer(game, amount, element, opts = {}, attacker =
     p.slowUntil = game.time + 1.0 * (1 - (p.bonuses?.fhr || 0));
     p.slowAmt = opts.slow;
   }
+  // Proc "ao ser atingido": chance de conjurar uma skill (alvo = atacante ou monstro mais próximo)
+  let _ptp = p.position.clone();
+  if (attacker && attacker.position) _ptp = attacker.position.clone();
+  else { const _nm = nearestMonster(game, p.position, 20); if (_nm) _ptp = _nm.position.clone(); }
+  triggerProcs(game, p, 'struck', _ptp);
   p._hitFlash = 0.12;
   if (p.life <= 0) { p.life = 0; game.onPlayerDeath(); }
 }

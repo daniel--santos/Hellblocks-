@@ -37,7 +37,7 @@ function pickAffixes(pool, count, ilvl, rng, slot) {
     used.add(a.stat);
     const raw = rng.range(a.range[0], a.range[1]);
     const value = a.pct ? Math.round(raw * 100) / 100 : Math.round(raw);
-    chosen.push({ name: a.name, stat: a.stat, value, pct: a.pct });
+    chosen.push({ name: a.name, stat: a.stat, value, pct: a.pct, proc: a.proc });
   }
   return chosen;
 }
@@ -97,9 +97,14 @@ export function generateItem(ilvl, rarity, rng, opts = {}) {
     item.name = rng.pick(RARE_NAMES_A) + ' ' + rng.pick(RARE_NAMES_B);
   }
 
-  // agrega afixos em mods
+  // agrega afixos em mods; afixos de PROC vão para item.procs (chance de conjurar)
   for (const a of affixes) {
-    item.mods[a.stat] = (item.mods[a.stat] || 0) + a.value;
+    if (a.proc) {
+      item.procs = item.procs || [];
+      item.procs.push({ chance: a.value / 100, pct: a.value, skill: a.proc.skill, skillName: a.proc.skillName, level: a.proc.level, trigger: a.proc.trigger });
+    } else {
+      item.mods[a.stat] = (item.mods[a.stat] || 0) + a.value;
+    }
   }
   item.affixes = affixes;
   // requisito de nível sobe um pouco com afixos fortes
@@ -265,6 +270,10 @@ export function itemTooltipLines(item) {
   } else {
     for (const [stat, val] of Object.entries(item.mods || {})) {
       lines.push({ text: '+ ' + statLabel(stat, val), cls: 'affix' });
+    }
+    // procs (chance de conjurar)
+    for (const pr of (item.procs || [])) {
+      lines.push({ text: `${pr.pct}% de conjurar ${pr.skillName} (nv ${pr.level}) ${pr.trigger === 'strike' ? 'ao acertar' : 'ao ser atingido'}`, cls: 'affix' });
     }
     // soquetes / runeword
     if (item.sockets) {

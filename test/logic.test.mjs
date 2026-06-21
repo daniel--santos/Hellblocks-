@@ -246,6 +246,20 @@ let rm = mkMon(); affix('magic_resistant').apply(rm);
 ok('Resistente à Magia dá 50% resist a fogo/gelo/raio', rm.res.fire >= 0.5 && rm.res.cold >= 0.5 && rm.res.lightning >= 0.5);
 ok('novos modificadores existem no pool', ['cursed', 'mana_burn', 'magic_resistant'].every(id => MONSTER_AFFIXES.some(a => a.id === id)));
 
+// ---- Afixos de PROC: chance de conjurar ao acertar/ser atingido (ideia #4) ----
+ok('existe afixo de proc "ao ser atingido"', AFFIXES.suffix.some(a => a.proc && a.proc.trigger === 'struck'));
+ok('existe afixo de proc "ao acertar"', AFFIXES.suffix.some(a => a.proc && a.proc.trigger === 'strike'));
+let procItem = null;
+for (let i = 0; i < 400 && !procItem; i++) {
+  const it = generateItem(50, 'rare', rng, { slot: 'body' });
+  if (it.procs && it.procs.length) procItem = it;
+}
+ok('itens raros podem rolar procs (item.procs, separado de mods)', !!procItem && procItem.procs[0].chance > 0 && !!procItem.procs[0].skill);
+ok('proc tem skill/nível/gatilho/chance válidos', !!procItem && procItem.procs.every(p => p.skill && p.level > 0 && (p.trigger === 'strike' || p.trigger === 'struck') && p.chance > 0 && p.chance <= 1));
+ok('proc NÃO vira mod numérico do item', !!procItem && !('proc_nova' in procItem.mods) && !('proc_frost' in procItem.mods));
+const tipItem = { identified: true, mods: {}, reqLevel: 10, procs: [{ pct: 10, skillName: 'Nova', level: 6, trigger: 'struck' }] };
+ok('tooltip mostra a linha de proc', itemTooltipLines(tipItem).some(l => /conjurar Nova/.test(l.text) && /ao ser atingido/.test(l.text)));
+
 // ---- Conteúdo novo: runewords / sets / uniques ----
 import { RUNEWORDS } from '../src/data/gems.js';
 import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';

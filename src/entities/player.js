@@ -168,6 +168,16 @@ export class Player {
       eleDmg: { fire: (aura.fireDmg || 0), cold: (aura.coldDmg || 0), lightning: (aura.lightDmg || 0) },
     };
 
+    // procs (chance de conjurar ao acertar/ser atingido) coletados do equipamento + charms
+    this.procs = [];
+    const addProcs = (it) => {
+      if (!it || it.identified === false) return;
+      if (it.durability && it.durability.cur <= 0) return; // item quebrado não dá proc
+      if (it.procs) this.procs.push(...it.procs);
+    };
+    for (const s of EQUIP_SLOTS) addProcs(this.equipment[s]);
+    for (const it of this.inventory) if (it.slot === 'charm') addProcs(it);
+
     // mantém vida/mana dentro do novo máximo
     if (this.life != null) this.life = Math.min(this.life, this.maxLife);
     if (this.mana != null) this.mana = Math.min(this.mana, this.maxMana);

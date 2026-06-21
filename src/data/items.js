@@ -88,6 +88,19 @@ export const AFFIXES = {
 // Afixo de prefixo extra: Espinhos (reflete dano físico ao atacante).
 AFFIXES.prefix.push({ id: 'p_thorns', name: 'Espinhoso', stat: 'thorns', range: [10, 50], ilvl: 10, slots: ['body', 'shield'] });
 
+// Afixos de PROC (estilo D2: "X% de conjurar [skill] ao acertar / ao ser atingido"). O `range` rola a
+// CHANCE em %; `proc` descreve a skill, o nível fixo e o gatilho. Aplicados em item.procs (não em mods).
+AFFIXES.suffix.push(
+  { id: 's_proc_nova', name: 'do Relâmpago', stat: 'proc_nova', range: [5, 12], ilvl: 16, slots: ['body', 'helm', 'shield', 'amulet'],
+    proc: { skill: 'nova', skillName: 'Nova', level: 6, trigger: 'struck' } },
+  { id: 's_proc_frost', name: 'do Inverno', stat: 'proc_frost', range: [5, 12], ilvl: 14, slots: ['body', 'helm', 'shield', 'amulet'],
+    proc: { skill: 'frost_nova', skillName: 'Nova de Gelo', level: 5, trigger: 'struck' } },
+  { id: 's_proc_cbolt', name: 'da Carga', stat: 'proc_cbolt', range: [5, 12], ilvl: 12, slots: ['weapon', 'gloves', 'amulet'],
+    proc: { skill: 'charged_bolt', skillName: 'Dardos Elétricos', level: 6, trigger: 'strike' } },
+  { id: 's_proc_fire', name: 'da Brasa', stat: 'proc_fire', range: [5, 12], ilvl: 10, slots: ['weapon', 'gloves', 'amulet'],
+    proc: { skill: 'fire_bolt', skillName: 'Dardo de Fogo', level: 8, trigger: 'strike' } },
+);
+
 // Pool de afixos de JOIA (jewel) — subconjunto "legal" do D2. Joias encravam em
 // qualquer soquete (arma OU armadura) e dão o MESMO bônus independente do alvo.
 export const JEWEL_AFFIXES = {

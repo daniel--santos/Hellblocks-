@@ -365,6 +365,52 @@ const d2mods = await page.evaluate(async () => {
 console.log('✓ Modificadores de monstro:', JSON.stringify(d2mods));
 for (const [k, v] of Object.entries(d2mods)) if (v === false) throw new Error('modificadores falhou em: ' + k);
 
+// ===== Afixos de PROC: chance de conjurar ao acertar / ao ser atingido (ideia #4) =====
+const d2proc = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const C = await import('http://localhost:5173/src/systems/combat.js');
+  const M = await import('http://localhost:5173/src/entities/monster.js');
+  const rngS = g.rng.state; // procs e drops consomem RNG — restaura p/ não poluir blocos seguintes
+  const sv = { dodge: p.bonuses.dodgeChance, buffs: p.buffs };
+  g.running = true; p.dead = false; p.life = p.maxLife; p.mana = p.maxMana;
+  p.bonuses.dodgeChance = 0; p.buffs = {}; // isola esquiva/bloqueio p/ o proc "ao ser atingido" disparar
+
+  // 1) Equipar item com proc -> agrega em player.procs (recompute)
+  const procBody = { id: 'pb', name: 'Manto do Relâmpago', rarity: 'rare', slot: 'body', kind: 'body', icon: '🧥', identified: true, mods: {}, procs: [{ chance: 1, pct: 100, skill: 'nova', skillName: 'Nova', level: 6, trigger: 'struck' }] };
+  p.inventory.push(procBody); p.equip(procBody);
+  out.procAggregated = (p.procs || []).some(x => x.skill === 'nova' && x.trigger === 'struck');
+
+  // 2) "ao ser atingido" (chance 100%) -> conjura Nova (cria burst fx)
+  g.fx = g.fx || []; g.projectiles = g.projectiles || [];
+  const fxB = g.fx.length;
+  p.life = p.maxLife; p.dead = false;
+  C.applyDamageToPlayer(g, 10, 'physical');
+  out.procStruck = g.fx.length > fxB;
+
+  // 3) "ao acertar" (chance 100%) -> conjura Dardo de Fogo (projétil) no alvo
+  p.procs = [{ chance: 1, pct: 100, skill: 'fire_bolt', skillName: 'Dardo de Fogo', level: 8, trigger: 'strike' }];
+  const mon = M.makeMonster('zombie', 5, 'normal', g.difficultyObj, g.rng);
+  mon.setPosition(p.position.x + 3, p.position.z); g.monsters.push(mon);
+  const projB = g.projectiles.length;
+  C.applyDamage(g, mon, 5, 'physical', p);
+  out.procStrike = g.projectiles.length > projB;
+
+  // 4) sem procs -> NÃO dispara nada (guarda de "sem procs")
+  p.procs = [];
+  const projB2 = g.projectiles.length;
+  C.applyDamage(g, mon, 5, 'physical', p);
+  out.noProcNoFire = g.projectiles.length === projB2;
+
+  // limpa estado
+  mon.dead = true; g.monsters = g.monsters.filter(x => x !== mon);
+  if (p.equipment.body === procBody) delete p.equipment.body;
+  p.bonuses.dodgeChance = sv.dodge; p.buffs = sv.buffs;
+  p.recompute(); p.life = p.maxLife; p.mana = p.maxMana; g.rng.state = rngS;
+  return out;
+});
+console.log('✓ Procs (ao acertar/ser atingido):', JSON.stringify(d2proc));
+for (const [k, v] of Object.entries(d2proc)) if (v === false) throw new Error('procs falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};
