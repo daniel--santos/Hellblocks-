@@ -1000,10 +1000,28 @@ class Game {
       return;
     }
     if (this.player.scrolls.tp <= 0) { this.log('Sem Pergaminhos de Portal!', 'dmg'); return; }
+    if ((this.zone.exits || []).some(e => e.townPortal)) { this.log('Já há um Portal aberto aqui.', 'desc'); return; }
     this.player.scrolls.tp--;
-    this.returnPoint = { actIndex: this.actIndex, zoneIndex: this.zoneIndex, type: this.zone.type, x: this.player.position.x, z: this.player.position.z };
-    this.log('🌀 Pergaminho de Portal usado — de volta à cidade.', 'magic');
-    this._goToTown();
+    const px = this.player.position.x, pz = this.player.position.z;
+    this.returnPoint = { actIndex: this.actIndex, zoneIndex: this.zoneIndex, type: this.zone.type, x: px, z: pz };
+    // Portal FÍSICO (estilo D2): abre AO LADO do jogador (offset > 1.3 p/ não disparar na hora);
+    // atravesse-o para ir à cidade. Na cidade já existe a saída "return" de volta a este ponto.
+    const portal = { x: px + 2.5, z: pz, to: 'town', townPortal: true, color: 0xff66ff, label: 'Portal para a Cidade' };
+    this.zone.exits = [...(this.zone.exits || []), portal];
+    this._spawnPortalMarker(portal);
+    this.log('🌀 Portal aberto — atravesse-o para ir à cidade.', 'magic');
+  }
+  // marcador visual do Town Portal físico (plano brilhante + luz), adicionado à zona atual
+  _spawnPortalMarker(ex) {
+    const g = new THREE.Group();
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6),
+      new THREE.MeshBasicMaterial({ color: ex.color || 0xff66ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+    plane.position.y = 1.3;
+    g.add(plane);
+    const light = new THREE.PointLight(ex.color || 0xff66ff, 1.6, 9); light.position.y = 1.4; g.add(light);
+    g.position.set(ex.x, 0, ex.z);
+    ex._portalMesh = g;
+    if (this.zone && this.zone.group) this.zone.group.add(g);
   }
   _returnFromTown() {
     const rp = this.returnPoint;

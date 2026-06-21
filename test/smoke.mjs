@@ -168,8 +168,12 @@ const refine = await page.evaluate(async () => {
   // durante o loop ao vivo, zerando g.running; aí _useTownPortal() vira no-op e o teste fica flaky.
   g.player.dead = false; g.running = true; g.player.life = g.player.maxLife;
   g.player.scrolls.tp = Math.max(1, g.player.scrolls.tp);
+  // portal FÍSICO (ideia #9): F abre o portal (não teleporta); atravessá-lo leva à cidade
   g._useTownPortal();
-  await new Promise(r => setTimeout(r, 250));
+  const portal = (g.zone.exits || []).find(e => e.townPortal);
+  out.tpPortalOpened = !!portal && !!g.returnPoint && g.zone.type !== 'town'; // abriu, não teleportou
+  g.player.position.set(portal.x, 0, portal.z); g._takeExit(portal); // atravessa o portal
+  await new Promise(r => setTimeout(r, 200));
   out.tpToTown = g.zone.type === 'town' && !!g.returnPoint;
   return out;
 });

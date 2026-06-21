@@ -43,7 +43,7 @@ Abra **http://localhost:5173** no navegador (Chrome/Edge/Firefox).
 | **Players X** (ciclar densidade/poder) | **X** |
 | Poção de vida · **rejuvenescimento** · mana | **Q** · **R** · **E** |
 | **Troca de armas** (Weapon Swap: conjunto I ↔ II) | **W** (ou clique no ⚔ I/II) |
-| **Pergaminho de Portal** (volta à cidade e abre retorno) | **F** |
+| **Pergaminho de Portal** (abre um portal físico ao seu lado) | **F** |
 | **Waypoints** (teleporte entre áreas descobertas) | **Z** |
 | **Cubo Horadric** (transmutar) | **H** |
 | **Baú** de armazenamento | **B** |
@@ -127,7 +127,7 @@ Na cidade há um portal verde escondido no canto: é a entrada do **Cow Level**.
 - **Auras de mercenário**: cada tipo concede um buff ao jogador enquanto vivo (Guarda → Vigor/+dano, Arqueira → +crítico, Lobo de Ferro → regen de mana, Bárbaro → +dano/+defesa). Há um **anel de aura pulsando no chão** sob o merc (cor da aura).
 - **Auras selecionáveis (Guarda do Deserto, Ato II)**: ao contratá-lo, escolha a aura — **Vigor** (+15% dano), **Determinação** (+18% defesa), **Oração** (regen. de mana ×2.5) ou **Gelo Sagrado** (congela/atrasa inimigos próximos do merc). A escolha é salva no personagem.
 - **Reespecialização (respec)**: na Curandeira, devolve todos os pontos de skill e de atributo por ouro (estilo "Token of Absolution" do D2).
-- **Pergaminho de Portal (Town Portal)**: volta à cidade e abre um portal de retorno para o ponto exato.
+- **Town Portal FÍSICO (estilo D2)**: o Pergaminho de Portal **abre um portal ao seu lado** (não teleporta na hora) — **atravesse-o** para ir à cidade; lá, um **portal de retorno** te traz de volta ao ponto exato. Brilha dos dois lados.
 - **Poções**: vida, mana e **rejuvenescimento** (restaura vida + mana). Caem de monstros e **auto-preenchem o cinto** ao serem coletadas.
 - **Cinto de poções com fileiras (estilo D2)**: a **capacidade por tipo** depende do **cinto equipado** — sem cinto cabe 1 fileira (4 por tipo); **Faixa** = 2 fileiras (8), **Cinto** = 3 (12), **Cinto de Guerra** = 4 (16). O HUD mostra `atual/capacidade` e a coleta/compra respeita o limite.
 - **Vigor (Stamina) + correr/andar (estilo D2)**: barra de **vigor** no HUD que **drena ao correr** (movendo) e **regenera** parado/andando; com vigor **esgotado** você é forçado a **andar** (55% da velocidade). **Clique na barra** para alternar correr/andar (andar poupa vigor). O máximo de vigor sobe com **vitalidade**, **nível** e o afixo **+Vigor**.
@@ -166,7 +166,7 @@ src/
 
 ```bash
 node test/logic.test.mjs   # 159 checagens de lógica pura (XP, loot, afixos, procs de conjuração, vigor, skills, dificuldade, soquetes, runewords + Call to Arms, cubo c/ craft de cravejados, cinto de poções por fileiras, durabilidade, etéreo, superior, aura, sets, summons, quests por ato c/ recompensas icônicas, FHR, sustain, lore, maestrias, charm único, teleporte/vingança, joias/facetas, set de 3 peças, runewords novas, organizar inventário, modificadores de monstro c/ efeitos)
-node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), procs (conjurar ao acertar/ser atingido), cinto de poções (fileiras/capacidade), vigor (drena/regenera/anda-devagar/toggle), troca de armas + Call to Arms (Ordens de Batalha), auras selecionáveis do merc (Vigor/Determinação/Oração/Gelo Sagrado + Holy Freeze), lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo (incl. cravejados/craft), joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
+node test/smoke.mjs        # smoke headless (Chrome): boota, joga, skills L/R, teleporte, stand-still, hitbox, hover/boss-bar, imbuir, títulos, summons, quests (Covil do Mal/Larzuk/Anya/Lam Esen/Pássaro Dourado), modificadores de monstro (nova ao morrer/maldição/queima de mana), procs (conjurar ao acertar/ser atingido), cinto de poções (fileiras/capacidade), vigor (drena/regenera/anda-devagar/toggle), troca de armas + Call to Arms (Ordens de Batalha), auras selecionáveis do merc (Vigor/Determinação/Oração/Gelo Sagrado + Holy Freeze), town portal físico, lore, loja/reparo, merc+equip+aura+morte-some, companheiros-alvo, respec, players X, soquetes, cubo (incl. cravejados/craft), joias/facetas/set-3-peças, arco/flecha, baú-abas/organizar/drag-and-drop, mundo (overworld contínuo/cidade segura/waypoint por região/area-name/travel), colisão com estruturas, tooltip venda/baú, cubo condensa charms (toggle), hardcore, super único, 3 slots de save, save/continuar, cow, boss
 node test/screenshot.mjs   # captura screenshots do jogo renderizando (selva, árvore, loja, cubo)
 ```
 
