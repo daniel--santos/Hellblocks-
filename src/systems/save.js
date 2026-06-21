@@ -45,7 +45,7 @@ export function saveGame(game, slot = (game.saveSlot ?? 0)) {
     condenseCharms: game.condenseCharms !== false,
     stashTabs: game.stashTabs, waypointList: game.waypointList,
     questLog: game.questLog, killCount: game.killCount, questAct: game._questAct,
-    merc: (game.mercenary && !game.mercenary.dead) ? { typeId: game.mercenary.type.id, level: game.mercenary.level } : null,
+    merc: (game.mercenary && !game.mercenary.dead) ? { typeId: game.mercenary.type.id, level: game.mercenary.level, auraId: game.mercenary.auraId || null } : null,
   };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); return true; } catch { return false; }
 }

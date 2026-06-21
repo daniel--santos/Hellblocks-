@@ -143,6 +143,7 @@ class Game {
     this._questAct = data.questAct != null ? data.questAct : this.actIndex;
     if (data.merc && MERC_TYPES[data.merc.typeId]) {
       this.mercenary = new Mercenary(MERC_TYPES[data.merc.typeId], data.merc.level);
+      if (data.merc.auraId) this.mercenary.setAura(data.merc.auraId);
       this.engine.scene.add(this.mercenary.mesh);
     }
     this.ui.showHUD();
@@ -966,15 +967,16 @@ class Game {
   }
 
   // ---------- Mercenário ----------
-  hireMercenary(type) {
+  hireMercenary(type, auraId) {
     const cost = hireCost(type, this.player.level);
     if (this.mercenary && !this.mercenary.dead) { this.log('Você já tem um mercenário.', 'dmg'); return false; }
     if (this.player.gold < cost) { this.log('Ouro insuficiente para contratar.', 'dmg'); return false; }
     this.player.gold -= cost;
     this.mercenary = new Mercenary(type, this.player.level);
+    if (auraId) this.mercenary.setAura(auraId); // aura selecionável (Guarda do Deserto, Ato II)
     this.mercenary.position.set(this.player.position.x + 1.5, 0, this.player.position.z);
     this.engine.scene.add(this.mercenary.mesh);
-    this.log(`Contratou ${type.name} por ${cost} de ouro!`, 'set');
+    this.log(`Contratou ${type.name}${this.mercenary.auraId ? ' (' + this.mercenary.auraText + ')' : ''} por ${cost} de ouro!`, 'set');
     return true;
   }
   reviveMercenary() {
@@ -1188,13 +1190,15 @@ class Game {
       else if (b.type === 'defense') p._tempDefense += b.add;
       else if (b.type === 'mana_regen') p._manaRegenMul *= b.mult;
     }
-    // aura do mercenário (enquanto vivo)
-    if (this.mercenary && !this.mercenary.dead && this.mercenary.type.aura) {
-      const a = this.mercenary.type.aura;
-      if (a.damageMul) p._damageMul *= a.damageMul;
-      if (a.defenseAdd) p._tempDefense += a.defenseAdd;
-      if (a.manaRegenMul) p._manaRegenMul *= a.manaRegenMul;
-      if (a.critAdd) p._auraCrit += a.critAdd;
+    // aura do mercenário (enquanto vivo) — usa a aura escolhida na instância, ou a padrão do tipo
+    if (this.mercenary && !this.mercenary.dead) {
+      const a = this.mercenary.aura || this.mercenary.type.aura;
+      if (a) {
+        if (a.damageMul) p._damageMul *= a.damageMul;
+        if (a.defenseAdd) p._tempDefense += a.defenseAdd;
+        if (a.manaRegenMul) p._manaRegenMul *= a.manaRegenMul;
+        if (a.critAdd) p._auraCrit += a.critAdd;
+      }
     }
   }
 
@@ -1319,7 +1323,18 @@ class Game {
       this.monsters = this.monsters.filter(m => !m.dead);
 
       // mercenário
-      if (this.mercenary && !this.mercenary.dead) this.mercenary.update(this, dt, this.time);
+      if (this.mercenary && !this.mercenary.dead) {
+        this.mercenary.update(this, dt, this.time);
+        // Gelo Sagrado (Holy Freeze): inimigos perto do merc ficam lentos
+        const ma = this.mercenary.aura || this.mercenary.type.aura;
+        if (ma && ma.holyFreeze) {
+          const mp = this.mercenary.position;
+          for (const m of this.monsters) {
+            if (m.dead) continue;
+            if (Math.hypot(m.position.x - mp.x, m.position.z - mp.z) < 7) { m.slowUntil = this.time + 0.3; m.slowAmt = 0.5; }
+          }
+        }
+      }
 
       // invocações aliadas
       for (const s of this.summons) s.update(this, dt, this.time);

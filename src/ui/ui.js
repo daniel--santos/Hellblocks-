@@ -9,7 +9,7 @@ import { itemTooltipLines } from '../systems/loot.js';
 import { RARITY } from '../data/items.js';
 import { MAX_LEVEL } from '../systems/leveling.js';
 import { buyPrice, sellPrice, gamblePrice, CONSUMABLE_PRICES } from '../systems/economy.js';
-import { mercForAct, hireCost, MERC_TYPES } from '../entities/mercenary.js';
+import { mercForAct, hireCost, MERC_TYPES, MERC_AURAS } from '../entities/mercenary.js';
 import { CUBE_RECIPES } from '../systems/cube.js';
 
 const $ = id => document.getElementById(id);
@@ -741,7 +741,7 @@ export class UI {
       html += `<p>Mercenário atual: <b>${m.type.icon} ${m.name}</b> (Nv ${m.level})</p>`;
       html += `<div class="stat-row"><span>Vida</span><span class="stat-val">${Math.ceil(m.life)}/${m.maxLife}</span></div>`;
       html += `<div class="stat-row"><span>Dano</span><span class="stat-val">${m.damage}</span></div>`;
-      if (m.type.auraText) html += `<div class="stat-row"><span>Aura</span><span class="stat-val" style="color:#6f8fff">${m.type.auraText}</span></div>`;
+      if (m.auraText || m.type.auraText) html += `<div class="stat-row"><span>Aura</span><span class="stat-val" style="color:#6f8fff">${m.auraText || m.type.auraText}</span></div>`;
       // equipamento do mercenário
       html += `<div style="margin-top:8px"><b>Equipamento</b></div><div class="equip-row">`;
       for (const [slot, label] of [['weapon', 'Arma'], ['body', 'Peito'], ['helm', 'Elmo']]) {
@@ -765,7 +765,18 @@ export class UI {
       if (!types.includes(MERC_TYPES.rogue)) types.unshift(MERC_TYPES.rogue);
       for (const t of types) {
         const cost = hireCost(t, p.level);
-        html += `<div class="stat-row"><span>${t.icon} ${t.name} (${t.ranged ? 'distância/' + t.element : 'corpo-a-corpo'})</span><span><span class="stat-val">${cost}🪙</span> <button class="alloc-btn merc-hire" data-id="${t.id}">contratar</button></span></div>`;
+        html += `<div class="stat-row"><span>${t.icon} ${t.name} (${t.ranged ? 'distância/' + t.element : 'corpo-a-corpo'})</span><span class="stat-val">${cost}🪙</span></div>`;
+        if (t.auraChoices && t.auraChoices.length) {
+          // auras selecionáveis (Guarda do Deserto, Ato II): contrata já com a aura escolhida
+          html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px 8px">`;
+          for (const aid of t.auraChoices) {
+            const opt = MERC_AURAS[aid];
+            html += `<button class="alloc-btn merc-hire" data-id="${t.id}" data-aura="${aid}" title="${opt.text}">contratar c/ ${opt.name}</button>`;
+          }
+          html += `</div>`;
+        } else {
+          html += `<div style="margin:0 0 6px 8px"><button class="alloc-btn merc-hire" data-id="${t.id}">contratar</button></div>`;
+        }
       }
     }
     html += `<p style="font-size:11px;color:#8a7a5a;margin-top:10px">Esc para fechar.</p>`;
@@ -774,7 +785,7 @@ export class UI {
     if (rsp) rsp.onclick = () => { game.respec(); this.renderMercenary(game); };
     const rev = this.modal.querySelector('#merc-revive');
     if (rev) rev.onclick = () => { game.reviveMercenary(); this.renderMercenary(game); };
-    this.modal.querySelectorAll('.merc-hire').forEach(n => n.onclick = () => { game.hireMercenary(MERC_TYPES[n.dataset.id]); this.renderMercenary(game); });
+    this.modal.querySelectorAll('.merc-hire').forEach(n => n.onclick = () => { game.hireMercenary(MERC_TYPES[n.dataset.id], n.dataset.aura); this.renderMercenary(game); });
     this.modal.querySelectorAll('.merc-give').forEach(n => n.onclick = () => { game.equipMerc(game.player.inventory.find(x => x.id === n.dataset.id)); this.renderMercenary(game); });
     this.modal.querySelectorAll('.merc-slot').forEach(n => {
       const it = game.mercenary && game.mercenary.gear[n.dataset.slot];

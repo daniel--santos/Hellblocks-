@@ -8,10 +8,20 @@ import { getItemMods } from '../systems/sockets.js';
 // aura: buff concedido ao jogador enquanto o mercenário estiver vivo (estilo auras de merc do D2)
 export const MERC_TYPES = {
   rogue: { id: 'rogue', name: 'Arqueira Mercenária', icon: '🏹', color: 0x884466, ranged: true, element: 'cold', range: 14, baseHire: 200, aura: { critAdd: 0.08 }, auraText: '+8% crítico' },
-  guard: { id: 'guard', name: 'Guarda do Deserto', icon: '🗡️', color: 0xc9a86a, ranged: false, element: 'physical', range: 2.2, baseHire: 400, aura: { damageMul: 1.15 }, auraText: 'Vigor: +15% dano' },
+  guard: { id: 'guard', name: 'Guarda do Deserto', icon: '🗡️', color: 0xc9a86a, ranged: false, element: 'physical', range: 2.2, baseHire: 400, aura: { damageMul: 1.15 }, auraText: 'Vigor: +15% dano', auraChoices: ['vigor', 'determinacao', 'oracao', 'gelo_sagrado'] },
   ironwolf: { id: 'ironwolf', name: 'Lobo de Ferro', icon: '🔥', color: 0x4466aa, ranged: true, element: 'fire', range: 12, baseHire: 700, aura: { manaRegenMul: 2 }, auraText: 'Regen. de mana x2' },
   barbarian: { id: 'barbarian', name: 'Bárbaro', icon: '⚔️', color: 0x886644, ranged: false, element: 'physical', range: 2.4, baseHire: 1000, aura: { damageMul: 1.10, defenseAdd: 0.10 }, auraText: '+10% dano, +10% defesa' },
 };
+
+// Auras selecionáveis ao contratar o Guarda do Deserto (Ato II), estilo D2 (Vigor/Determinação/Oração/Gelo Sagrado).
+// holyFreeze é lido no loop (lentidão em inimigos perto do merc); os demais reusam o sistema de aura existente.
+export const MERC_AURAS = {
+  vigor:        { id: 'vigor', name: 'Vigor', color: 0xff5533, aura: { damageMul: 1.15 }, text: 'Vigor: +15% dano' },
+  determinacao: { id: 'determinacao', name: 'Determinação', color: 0x55aaff, aura: { defenseAdd: 0.18 }, text: 'Determinação: +18% defesa' },
+  oracao:       { id: 'oracao', name: 'Oração', color: 0xffe066, aura: { manaRegenMul: 2.5 }, text: 'Oração: regen. de mana x2.5' },
+  gelo_sagrado: { id: 'gelo_sagrado', name: 'Gelo Sagrado', color: 0x66e0ff, aura: { holyFreeze: 1 }, text: 'Gelo Sagrado: congela inimigos próximos' },
+};
+export function mercAura(auraId) { return MERC_AURAS[auraId] || null; }
 
 export function mercForAct(actIndex) {
   return [MERC_TYPES.rogue, MERC_TYPES.guard, MERC_TYPES.ironwolf, MERC_TYPES.barbarian][Math.min(actIndex, 3)];
@@ -35,12 +45,33 @@ export class Mercenary {
     this.attackCd = 0;
     this.attackSpeed = 1.1;
     this.dead = false;
+    this.auraId = null;             // aura escolhida (Guarda do Deserto); null = aura padrão do tipo
+    this.aura = type.aura;          // aura efetiva (sobrescrita por setAura ao escolher)
+    this.auraText = type.auraText;
 
     const m = makeHumanoid({ color: type.color, accent: 0x333333, scale: 1.0, weapon: type.ranged ? 'bow' : 'sword' });
     this.mesh = m.group;
     this.parts = m.parts;
+    // anel de aura pulsando no chão (cor da aura)
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.2, 24),
+      new THREE.MeshBasicMaterial({ color: this._auraColor(), transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05;
+    this.auraRing = ring; this.mesh.add(ring);
     this.position = new THREE.Vector3();
     this.facing = 0;
+  }
+
+  _auraColor() { return (this.auraId && MERC_AURAS[this.auraId]) ? MERC_AURAS[this.auraId].color : 0x6f8fff; }
+
+  // escolhe a aura (apenas tipos com auraChoices, ex.: Guarda do Deserto). Reverte ao padrão se inválida.
+  setAura(auraId) {
+    const opt = MERC_AURAS[auraId];
+    if (opt && (this.type.auraChoices || []).includes(auraId)) {
+      this.auraId = auraId; this.aura = opt.aura; this.auraText = opt.text;
+    } else {
+      this.auraId = null; this.aura = this.type.aura; this.auraText = this.type.auraText;
+    }
+    if (this.auraRing) this.auraRing.material.color.setHex(this._auraColor());
   }
 
   setLevel(level) { this.level = level; this.recompute(); }
@@ -106,6 +137,12 @@ export class Mercenary {
     this.life = Math.min(this.maxLife, this.life + this.maxLife * 0.01 * dt);
 
     animateHumanoid(this.parts, time + 1.7, moving, this.attackAnim || 0);
+    // pulso do anel de aura
+    if (this.auraRing) {
+      const s = 1 + 0.12 * Math.sin(time * 3);
+      this.auraRing.scale.set(s, s, s);
+      this.auraRing.material.opacity = 0.3 + 0.2 * (0.5 + 0.5 * Math.sin(time * 3));
+    }
     this.mesh.position.copy(this.position);
     this.mesh.rotation.y = this.facing;
   }

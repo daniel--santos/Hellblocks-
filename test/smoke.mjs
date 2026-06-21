@@ -507,6 +507,49 @@ const d2swap = await page.evaluate(async () => {
 console.log('✓ Weapon swap + CtA:', JSON.stringify(d2swap));
 for (const [k, v] of Object.entries(d2swap)) if (v === false) throw new Error('swap falhou em: ' + k);
 
+// ===== Auras selecionáveis do mercenário (Guarda do Deserto, Ato II) (ideia #8) =====
+const d2merc = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const ME = await import('http://localhost:5173/src/entities/mercenary.js');
+  const M = await import('http://localhost:5173/src/entities/monster.js');
+  const rngS = g.rng.state;
+
+  // contrata o Guarda do Deserto JÁ com aura escolhida (Determinação)
+  if (g.mercenary) { g.engine.scene.remove(g.mercenary.mesh); g.mercenary = null; }
+  p.gold = 99999;
+  g.hireMercenary(ME.MERC_TYPES.guard, 'determinacao');
+  out.auraChosen = g.mercenary.auraId === 'determinacao' && g.mercenary.aura.defenseAdd === 0.18;
+  g._updateBuffs();
+  out.auraApplies = p._tempDefense >= 0.18 - 1e-9;           // Determinação -> +defesa no jogador
+  // trocar para Vigor muda o efeito (+dano)
+  g.mercenary.setAura('vigor'); g._updateBuffs();
+  out.auraSwitch = Math.abs((p._damageMul || 1) - 1.15) < 0.02;
+  // aura inválida reverte ao padrão do tipo
+  g.mercenary.setAura('xyz');
+  out.auraInvalidReverts = g.mercenary.auraId === null && g.mercenary.aura === ME.MERC_TYPES.guard.aura;
+  // só o Guarda tem opções; Lobo de Ferro não
+  out.onlyGuardChoices = (ME.MERC_TYPES.guard.auraChoices || []).length >= 3 && !ME.MERC_TYPES.ironwolf.auraChoices;
+
+  // Gelo Sagrado via o LOOP REAL: inimigo perto do merc fica lento
+  g.mercenary.setAura('gelo_sagrado');
+  g.running = true; p.dead = false; g.input.setEnabled(true);
+  g._goToWilderness(0); // overworld (não-safe; na cidade os monstros seriam removidos)
+  await new Promise(r => setTimeout(r, 60));
+  g.mercenary.position.set(p.position.x + 3, 0, p.position.z);
+  const mon = M.makeMonster('zombie', 5, 'normal', g.difficultyObj, g.rng);
+  mon.maxLife = 9999; mon.life = 9999; // não morre durante a medição
+  mon.setPosition(g.mercenary.position.x + 1.5, g.mercenary.position.z); mon.slowUntil = 0;
+  g.monsters.push(mon);
+  await new Promise(r => setTimeout(r, 140)); // o loop aplica Holy Freeze
+  out.holyFreeze = mon.slowUntil > g.time;
+
+  // limpa
+  mon.dead = true; g.monsters = g.monsters.filter(x => x !== mon); g.rng.state = rngS;
+  return out;
+});
+console.log('✓ Auras do mercenário:', JSON.stringify(d2merc));
+for (const [k, v] of Object.entries(d2merc)) if (v === false) throw new Error('aura-merc falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};
