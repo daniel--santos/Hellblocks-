@@ -512,8 +512,9 @@ class Game {
       if (d.position.distanceTo(p) < 1.4) {
         if (d.type === 'gold') { this.player.gold += d.amount; this.log(`+${d.amount} ouro`); }
         else if (d.type === 'potion') {
-          this.player.potions[d.potion] = Math.min(20, this.player.potions[d.potion] + 1);
-          this.log(`Poção de ${d.potion === 'life' ? 'vida' : 'mana'} coletada`);
+          const cap = this.player.beltCapacity();
+          if ((this.player.potions[d.potion] || 0) >= cap) { this.log('Cinto cheio — equipe um cinto maior.', 'desc'); }
+          else { this.player.potions[d.potion] = Math.min(cap, (this.player.potions[d.potion] || 0) + 1); this.log(`Poção de ${d.potion === 'life' ? 'vida' : 'mana'} coletada`); }
         } else if (d.type === 'scroll') {
           this.player.scrolls[d.scroll] = Math.min(20, (this.player.scrolls[d.scroll] || 0) + 1);
           this.log(`Pergaminho de ${d.scroll === 'id' ? 'Identificação' : 'Portal'} coletado`);
@@ -983,9 +984,15 @@ class Game {
   buyConsumable(kind) {
     const price = CONSUMABLE_PRICES[kind];
     if (this.player.gold < price) { this.log('Ouro insuficiente.', 'dmg'); return; }
-    this.player.gold -= price;
-    if (kind === 'life' || kind === 'mana' || kind === 'rejuv') this.player.potions[kind] = Math.min(20, (this.player.potions[kind] || 0) + 1);
-    else this.player.scrolls[kind] = Math.min(20, (this.player.scrolls[kind] || 0) + 1);
+    if (kind === 'life' || kind === 'mana' || kind === 'rejuv') {
+      const cap = this.player.beltCapacity();
+      if ((this.player.potions[kind] || 0) >= cap) { this.log('Cinto cheio — equipe um cinto maior.', 'desc'); return; }
+      this.player.gold -= price;
+      this.player.potions[kind] = Math.min(cap, (this.player.potions[kind] || 0) + 1);
+    } else {
+      this.player.gold -= price;
+      this.player.scrolls[kind] = Math.min(20, (this.player.scrolls[kind] || 0) + 1);
+    }
   }
   buyItem(npc, item) {
     const price = buyPrice(item);

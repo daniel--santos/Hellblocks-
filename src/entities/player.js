@@ -2,7 +2,7 @@
 // inventário e leveling 1->99.
 import * as THREE from 'three';
 import { CLASSES } from '../data/classes.js';
-import { SET_BONUSES } from '../data/items.js';
+import { SET_BONUSES, beltRowsFor } from '../data/items.js';
 import { makeHumanoid, animateHumanoid } from '../core/blocks.js';
 import { MAX_LEVEL, xpToReach, xpForNext } from '../systems/leveling.js';
 import { aggregateAuraAndPassive } from '../systems/skilltree.js';
@@ -181,6 +181,13 @@ export class Player {
     // mantém vida/mana dentro do novo máximo
     if (this.life != null) this.life = Math.min(this.life, this.maxLife);
     if (this.mana != null) this.mana = Math.min(this.mana, this.maxMana);
+  }
+
+  // capacidade do cinto de poções (por tipo) = fileiras do cinto equipado × 4. Sem cinto = 1 fileira (4).
+  beltCapacity() {
+    const b = this.equipment.belt;
+    if (!b || b.identified === false || (b.durability && b.durability.cur <= 0)) return 4;
+    return beltRowsFor(b.baseId) * 4;
   }
 
   // dano básico de um ataque normal (left click sem skill)

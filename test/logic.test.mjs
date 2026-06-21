@@ -260,6 +260,13 @@ ok('proc NÃO vira mod numérico do item', !!procItem && !('proc_nova' in procIt
 const tipItem = { identified: true, mods: {}, reqLevel: 10, procs: [{ pct: 10, skillName: 'Nova', level: 6, trigger: 'struck' }] };
 ok('tooltip mostra a linha de proc', itemTooltipLines(tipItem).some(l => /conjurar Nova/.test(l.text) && /ao ser atingido/.test(l.text)));
 
+// ---- Cinto de poções com fileiras (ideia #5) ----
+import { beltRowsFor } from '../src/data/items.js';
+ok('faixa tem 2 fileiras', beltRowsFor('sash') === 2);
+ok('cinto de guerra tem 4 fileiras', beltRowsFor('war_belt') === 4);
+ok('cinto desconhecido cai no default (2)', beltRowsFor('xyz') === 2);
+ok('cintos têm fileiras crescentes', beltRowsFor('sash') < beltRowsFor('belt') && beltRowsFor('belt') < beltRowsFor('war_belt'));
+
 // ---- Conteúdo novo: runewords / sets / uniques ----
 import { RUNEWORDS } from '../src/data/gems.js';
 import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';

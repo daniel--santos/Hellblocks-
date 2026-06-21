@@ -411,6 +411,28 @@ const d2proc = await page.evaluate(async () => {
 console.log('✓ Procs (ao acertar/ser atingido):', JSON.stringify(d2proc));
 for (const [k, v] of Object.entries(d2proc)) if (v === false) throw new Error('procs falhou em: ' + k);
 
+// ===== Cinto de poções: capacidade por fileiras do cinto equipado (ideia #5) =====
+const d2belt = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  const mkBelt = (baseId) => ({ id: 'belt_' + baseId, baseId, slot: 'belt', kind: 'belt', icon: '🎗️', identified: true, mods: {} });
+  // sem cinto = 1 fileira (cap 4); faixa = 2 (8); cinto de guerra = 4 (16)
+  delete p.equipment.belt; out.noBeltCap = p.beltCapacity() === 4;
+  p.equipment.belt = mkBelt('sash'); out.sashCap = p.beltCapacity() === 8;
+  p.equipment.belt = mkBelt('war_belt'); out.warCap = p.beltCapacity() === 16;
+  // compra respeita a capacidade (recusa quando cheio, sem cobrar)
+  p.equipment.belt = mkBelt('sash'); p.potions.life = 8; p.gold = 99999; const goldB = p.gold;
+  g.buyConsumable('life');
+  out.buyRespectsCap = p.potions.life === 8 && p.gold === goldB;
+  // cinto maior -> a mesma compra passa (auto-enche até a nova capacidade)
+  p.equipment.belt = mkBelt('war_belt'); g.buyConsumable('life');
+  out.biggerBeltBuys = p.potions.life === 9;
+  // limpa
+  delete p.equipment.belt; p.recompute();
+  return out;
+});
+console.log('✓ Cinto de poções:', JSON.stringify(d2belt));
+for (const [k, v] of Object.entries(d2belt)) if (v === false) throw new Error('cinto falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};

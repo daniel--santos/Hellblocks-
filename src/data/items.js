@@ -28,7 +28,10 @@ export const ITEM_BASES = [
   { id: 'plate_mail', name: 'Armadura de Placas', slot: 'body', icon: '🛡️', def: [40, 70], reqLevel: 24, reqStr: 75, dur: 60 },
   { id: 'leather_gloves', name: 'Luvas de Couro', slot: 'gloves', icon: '🧤', def: [2, 4], reqLevel: 1, dur: 14 },
   { id: 'leather_boots', name: 'Botas de Couro', slot: 'boots', icon: '🥾', def: [2, 4], reqLevel: 1, dur: 14 },
-  { id: 'sash', name: 'Faixa', slot: 'belt', icon: '🎗️', def: [2, 4], reqLevel: 1, dur: 16 },
+  // Cintos: beltRows = fileiras de poções (estilo D2). Capacidade por tipo = fileiras × 4.
+  { id: 'sash', name: 'Faixa', slot: 'belt', icon: '🎗️', def: [2, 4], reqLevel: 1, dur: 16, beltRows: 2 },
+  { id: 'belt', name: 'Cinto', slot: 'belt', icon: '🩹', def: [5, 9], reqLevel: 8, reqStr: 18, dur: 20, beltRows: 3 },
+  { id: 'war_belt', name: 'Cinto de Guerra', slot: 'belt', icon: '🪢', def: [10, 16], reqLevel: 18, reqStr: 35, dur: 26, beltRows: 4 },
   { id: 'buckler', name: 'Broquel', slot: 'shield', icon: '🛡️', def: [4, 8], reqLevel: 1, reqStr: 12, dur: 24, classWeapon: ['guardian'] },
   { id: 'kite_shield', name: 'Escudo Pipa', slot: 'shield', icon: '🛡️', def: [14, 26], reqLevel: 14, reqStr: 40, dur: 40, classWeapon: ['guardian'] },
   // Joias
@@ -39,6 +42,12 @@ export const ITEM_BASES = [
   { id: 'charm_large', name: 'Talismã Grande', slot: 'charm', icon: '🔶', reqLevel: 10, charmSize: 2 },
   { id: 'charm_grand', name: 'Talismã Imenso', slot: 'charm', icon: '🟧', reqLevel: 20, charmSize: 3 },
 ];
+
+// Fileiras de poções de um cinto (por baseId). Cintos melhores = mais fileiras. Default 2 (faixa).
+export function beltRowsFor(baseId) {
+  const b = ITEM_BASES.find(x => x.id === baseId);
+  return (b && b.beltRows) || 2;
+}
 
 // Pool de afixos. tier limita por ilvl. mod aplicado em rolagem [min,max].
 // stat: chave em player.bonuses

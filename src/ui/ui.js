@@ -311,10 +311,12 @@ export class UI {
     const p = game.player;
     this.potionBelt.innerHTML = '';
     const defs = [['life', '🧪', '#ff5040', 'Q'], ['rejuv', '💜', '#b060ff', 'W'], ['mana', '🔵', '#5080ff', 'E']];
+    const cap = p.beltCapacity ? p.beltCapacity() : 4; // capacidade por tipo (fileiras do cinto)
     for (const [kind, icon, color, key] of defs) {
+      const n = p.potions[kind] || 0;
       const b = document.createElement('div');
       b.style.cssText = `width:40px;height:40px;border:2px solid ${color};border-radius:4px;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;`;
-      b.innerHTML = `<span style="font-size:16px">${icon}</span><span style="font-size:10px;color:#fff">${p.potions[kind] || 0}</span><span style="position:absolute;top:0;left:2px;font-size:8px;color:${color}">${key}</span>`;
+      b.innerHTML = `<span style="font-size:16px">${icon}</span><span style="font-size:10px;color:${n >= cap ? '#6f6' : '#fff'}">${n}/${cap}</span><span style="position:absolute;top:0;left:2px;font-size:8px;color:${color}">${key}</span>`;
       b.style.position = 'relative';
       b.onclick = () => game._usePotion(kind);
       this.potionBelt.appendChild(b);
