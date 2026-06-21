@@ -91,6 +91,7 @@ export const AFFIXES = {
     { id: 's_cbf', name: 'do Descongelamento', stat: 'cannotFreeze', range: [1, 1], ilvl: 18, slots: ['body', 'boots', 'ring'] },
     { id: 's_lpk', name: 'da Caçada', stat: 'lifePerKill', range: [1, 6], ilvl: 10 },
     { id: 's_mpk', name: 'do Êxtase', stat: 'manaPerKill', range: [1, 4], ilvl: 10 },
+    { id: 's_stamina', name: 'do Vigor', stat: 'staminaFlat', range: [15, 50], ilvl: 8, slots: ['boots', 'belt', 'body'] },
   ],
 };
 

@@ -433,6 +433,46 @@ const d2belt = await page.evaluate(async () => {
 console.log('✓ Cinto de poções:', JSON.stringify(d2belt));
 for (const [k, v] of Object.entries(d2belt)) if (v === false) throw new Error('cinto falhou em: ' + k);
 
+// ===== Vigor (stamina): correr drena, andar/parar regenera, esgotado anda devagar (ideia #6) =====
+const d2stam = await page.evaluate(async () => {
+  const g = window.__game; const p = g.player; const out = {};
+  out.hasStamina = p.maxStamina > 0 && p.stamina != null;
+
+  // +Vigor (staminaFlat) aumenta o máximo
+  const before = p.maxStamina;
+  const vig = { id: 'vig', name: 'Botas do Vigor', rarity: 'magic', slot: 'boots', kind: 'boots', icon: '🥾', identified: true, mods: { staminaFlat: 40 } };
+  p.inventory.push(vig); p.equip(vig);
+  out.staminaAffix = p.maxStamina === before + 40;
+  if (p.equipment.boots === vig) delete p.equipment.boots;
+  p.recompute();
+
+  // drena correndo+movendo; regenera parado
+  p.running = true; p.stamina = p.maxStamina; p._isMoving = true;
+  p.update(1.0, g.time);
+  out.drains = p.stamina < p.maxStamina;
+  const low = p.stamina; p._isMoving = false;
+  p.update(1.0, g.time);
+  out.regens = p.stamina > low;
+
+  // vigor esgotado -> anda mais devagar que correndo (mesma distância de moveTarget)
+  p.dead = false; g.running = true; p.attackTarget = null; p.interactTarget = null; p.slowUntil = 0; g.input.shift = false;
+  const x0 = p.position.x;
+  p.stamina = p.maxStamina; p.running = true; p.moveTarget = { x: x0 + 100, z: p.position.z };
+  g._updatePlayerMovement(0.1); const runDelta = Math.abs(p.position.x - x0);
+  p.position.x = x0; p.stamina = 0; p.moveTarget = { x: x0 + 100, z: p.position.z };
+  g._updatePlayerMovement(0.1); const walkDelta = Math.abs(p.position.x - x0);
+  out.walkSlower = walkDelta > 0 && walkDelta < runDelta;
+
+  // toggle correr/andar
+  p.running = true; g.toggleRun(); out.toggle = p.running === false; g.toggleRun();
+
+  // limpa
+  p.moveTarget = null; p.stamina = p.maxStamina; p.running = true; p._isMoving = false;
+  return out;
+});
+console.log('✓ Vigor (stamina):', JSON.stringify(d2stam));
+for (const [k, v] of Object.entries(d2stam)) if (v === false) throw new Error('vigor falhou em: ' + k);
+
 // ===== Companheiros como alvos · Respec · Aura de matilha =====
 const d2e = await page.evaluate(async () => {
   const g = window.__game; const p = g.player; const out = {};

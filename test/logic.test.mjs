@@ -267,6 +267,9 @@ ok('cinto de guerra tem 4 fileiras', beltRowsFor('war_belt') === 4);
 ok('cinto desconhecido cai no default (2)', beltRowsFor('xyz') === 2);
 ok('cintos têm fileiras crescentes', beltRowsFor('sash') < beltRowsFor('belt') && beltRowsFor('belt') < beltRowsFor('war_belt'));
 
+// ---- Vigor (stamina) — ideia #6 ----
+ok('afixo +Vigor (staminaFlat) existe', AFFIXES.suffix.some(a => a.stat === 'staminaFlat'));
+
 // ---- Conteúdo novo: runewords / sets / uniques ----
 import { RUNEWORDS } from '../src/data/gems.js';
 import { UNIQUES, SETS, SET_BONUSES as SB2 } from '../src/data/items.js';

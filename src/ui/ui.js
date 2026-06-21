@@ -61,6 +61,18 @@ export class UI {
     this.potionBelt.style.cssText = 'position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;';
     this.el.hud.appendChild(this.potionBelt);
 
+    // barra de Vigor (stamina) — clicável p/ alternar correr/andar
+    this.staminaBar = document.createElement('div');
+    this.staminaBar.id = 'stamina-bar';
+    this.staminaBar.style.cssText = 'position:absolute;bottom:118px;left:50%;transform:translateX(-50%);width:180px;height:13px;border:1px solid #6a5a2a;border-radius:6px;background:rgba(0,0,0,0.6);pointer-events:auto;cursor:pointer;overflow:hidden;';
+    this.staminaFill = document.createElement('div');
+    this.staminaFill.style.cssText = 'height:100%;width:100%;background:linear-gradient(90deg,#caa84a,#e8d27a);';
+    this.staminaBar.appendChild(this.staminaFill);
+    this.staminaLabel = document.createElement('div');
+    this.staminaLabel.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;text-shadow:0 0 2px #000;';
+    this.staminaBar.appendChild(this.staminaLabel);
+    this.el.hud.appendChild(this.staminaBar);
+
     // vida do mercenário
     this.mercEl = document.createElement('div');
     this.mercEl.id = 'merc-bar';
@@ -276,6 +288,7 @@ export class UI {
 
     this.renderBelt(game);
     this.renderPotionBelt(game);
+    this.renderStamina(game);
     this.drawMinimap(game);
   }
 
@@ -321,6 +334,18 @@ export class UI {
       b.onclick = () => game._usePotion(kind);
       this.potionBelt.appendChild(b);
     }
+  }
+
+  renderStamina(game) {
+    const p = game.player;
+    if (p.maxStamina == null) { this.staminaBar.style.display = 'none'; return; }
+    this.staminaBar.style.display = '';
+    this.staminaBar.onclick = () => game.toggleRun();
+    const pct = Math.max(0, Math.min(1, p.stamina / p.maxStamina));
+    const running = p.running !== false && p.stamina > 0;
+    this.staminaFill.style.width = (pct * 100) + '%';
+    this.staminaFill.style.opacity = running ? '1' : '0.45';
+    this.staminaLabel.textContent = `${running ? '🏃' : '🚶'} ${Math.round(p.stamina)}/${p.maxStamina}`;
   }
 
   drawMinimap(game) {

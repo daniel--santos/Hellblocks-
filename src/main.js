@@ -122,7 +122,7 @@ class Game {
       beltSkills: data.beltSkills || [], rightSkill: data.rightSkill || null, leftSkill: data.leftSkill || 'attack', activeAura: data.activeAura || null,
       questBonus: data.questBonus || { resAll: 0, lifeFlat: 0 }, // bônus permanentes de quest (saves antigos = 0)
     });
-    p.recompute(); p.life = p.maxLife; p.mana = p.maxMana;
+    p.recompute(); p.life = p.maxLife; p.mana = p.maxMana; p.stamina = p.maxStamina;
     this.engine.scene.add(p.mesh);
     this.difficulty = data.difficulty || 'normal';
     this.difficultyObj = DIFFICULTIES[this.difficulty];
@@ -609,6 +609,14 @@ class Game {
     if (this.player.rightSkill && !this.player.beltSkills.includes(this.player.rightSkill)) this.player.rightSkill = this.player.beltSkills[0];
   }
 
+  // alterna correr/andar (Vigor estilo D2): andar não gasta vigor e regenera melhor
+  toggleRun() {
+    if (!this.player) return;
+    this.player.running = !this.player.running;
+    this.log(this.player.running ? '🏃 Correndo (gasta vigor).' : '🚶 Andando (poupa vigor).', 'desc');
+    return this.player.running;
+  }
+
   _usePotion(kind) {
     const p = this.player;
     if ((p.potions[kind] || 0) <= 0) {
@@ -816,6 +824,9 @@ class Game {
     const p = this.player;
     if (p.dead) { p._isMoving = false; return; }
     let speed = p.derived.moveSpeed * (p._speedMul || 1);
+    // correr (vigor>0) = velocidade cheia; andar (vigor esgotado ou alternado) = 55%
+    const running = (p.running !== false) && (p.stamina == null || p.stamina > 0);
+    if (!running) speed *= 0.55;
     if (p.slowUntil && this.time < p.slowUntil) speed *= (1 - (p.slowAmt || 0.4));
 
     // dash de Investida

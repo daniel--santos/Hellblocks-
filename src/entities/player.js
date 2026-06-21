@@ -50,11 +50,13 @@ export class Player {
     this.mesh = model.group;
     this.parts = model.parts;
 
+    this.running = true;            // correr (gasta vigor) vs andar — alterna na barra de vigor (HUD)
     this.bonuses = {};
     this.derived = {};
     this.recompute();
     this.life = this.maxLife;
     this.mana = this.maxMana;
+    this.stamina = this.maxStamina;
   }
 
   // soma todos os mods do equipamento + charms identificados no inventário (estilo D2)
@@ -112,6 +114,8 @@ export class Player {
     this.maxMana = Math.floor(
       cls.startingMana + ene * cls.manaPerEne + this.level * cls.manaPerLevel + (eq.manaFlat || 0)
     );
+    // vigor (stamina): base + vitalidade + nível + afixos "+Vigor"
+    this.maxStamina = Math.floor(90 + vit * 1 + this.level * 1 + (eq.staminaFlat || 0));
 
     // dano da arma
     const weapon = this.equipment.weapon;
@@ -178,9 +182,10 @@ export class Player {
     for (const s of EQUIP_SLOTS) addProcs(this.equipment[s]);
     for (const it of this.inventory) if (it.slot === 'charm') addProcs(it);
 
-    // mantém vida/mana dentro do novo máximo
+    // mantém vida/mana/vigor dentro do novo máximo
     if (this.life != null) this.life = Math.min(this.life, this.maxLife);
     if (this.mana != null) this.mana = Math.min(this.mana, this.maxMana);
+    if (this.stamina != null) this.stamina = Math.min(this.stamina, this.maxStamina);
   }
 
   // capacidade do cinto de poções (por tipo) = fileiras do cinto equipado × 4. Sem cinto = 1 fileira (4).
@@ -312,6 +317,12 @@ export class Player {
     const regen = (this.bonuses.auraRegen || 0) + this.maxLife * 0.004;
     this.life = Math.min(this.maxLife, this.life + regen * dt);
     this.mana = Math.min(this.maxMana, this.mana + (this.maxMana * 0.03 + 1) * (this._manaRegenMul || 1) * dt);
+    // vigor: correndo+movendo drena (~14s); andando/parado regenera (parado ~9s, andando ~22s)
+    if (this.maxStamina != null) {
+      const draining = this._isMoving && this.running !== false && this.stamina > 0;
+      if (draining) this.stamina = Math.max(0, this.stamina - this.maxStamina / 14 * dt);
+      else this.stamina = Math.min(this.maxStamina, this.stamina + this.maxStamina / (this._isMoving ? 22 : 9) * dt);
+    }
 
     // cooldowns
     if (this._cooldowns) {
