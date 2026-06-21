@@ -58,13 +58,13 @@ export class UI {
     // cinto de poções (clicável)
     this.potionBelt = document.createElement('div');
     this.potionBelt.id = 'potion-belt';
-    this.potionBelt.style.cssText = 'position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;';
+    this.potionBelt.style.cssText = 'position:absolute;bottom:100px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;';
     this.el.hud.appendChild(this.potionBelt);
 
     // barra de Vigor (stamina) — clicável p/ alternar correr/andar
     this.staminaBar = document.createElement('div');
     this.staminaBar.id = 'stamina-bar';
-    this.staminaBar.style.cssText = 'position:absolute;bottom:118px;left:50%;transform:translateX(-50%);width:180px;height:13px;border:1px solid #6a5a2a;border-radius:6px;background:rgba(0,0,0,0.6);pointer-events:auto;cursor:pointer;overflow:hidden;';
+    this.staminaBar.style.cssText = 'position:absolute;bottom:146px;left:50%;transform:translateX(-50%);width:180px;height:13px;border:1px solid #6a5a2a;border-radius:6px;background:rgba(0,0,0,0.6);pointer-events:auto;cursor:pointer;overflow:hidden;';
     this.staminaFill = document.createElement('div');
     this.staminaFill.style.cssText = 'height:100%;width:100%;background:linear-gradient(90deg,#caa84a,#e8d27a);';
     this.staminaBar.appendChild(this.staminaFill);
@@ -76,7 +76,7 @@ export class UI {
     // indicador do conjunto de armas (weapon swap, tecla W) — clicável p/ trocar
     this.weaponSetEl = document.createElement('div');
     this.weaponSetEl.id = 'weapon-set';
-    this.weaponSetEl.style.cssText = 'position:absolute;bottom:118px;left:calc(50% + 100px);font-size:11px;color:#c8aa6e;background:rgba(0,0,0,0.6);border:1px solid #6a5a2a;border-radius:4px;padding:1px 6px;pointer-events:auto;cursor:pointer;text-shadow:0 0 2px #000;';
+    this.weaponSetEl.style.cssText = 'position:absolute;bottom:146px;left:calc(50% + 100px);font-size:11px;color:#c8aa6e;background:rgba(0,0,0,0.6);border:1px solid #6a5a2a;border-radius:4px;padding:1px 6px;pointer-events:auto;cursor:pointer;text-shadow:0 0 2px #000;';
     this.el.hud.appendChild(this.weaponSetEl);
 
     // vida do mercenário
